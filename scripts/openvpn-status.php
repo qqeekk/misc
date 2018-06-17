@@ -45,11 +45,17 @@ function human_filesize($bytes, $decimals = 2)
             <tbody>
             <?php
                 $title = '';
+                $totalrx = 0;
+                $totaltx = 0;
+                $totalclient = 0;
                 while (!feof($file)) {
                     $line = fgets($file);
                     $arr = explode(',', $line);
                     echo '<tr>';
                     if (count($arr) > 0 && $arr[0] == 'CLIENT_LIST') {
+                        $totalclient++;
+                        $totalrx += (int)$arr[5];
+                        $totaltx += (int)$arr[6];
                         echo '<td>' . $arr[1] . '</td>';
                         echo '<td><pre>' . $arr[2] . '</pre></td>';
                         echo '<td><pre>' . $arr[3] . '</pre></td>';
@@ -64,8 +70,20 @@ function human_filesize($bytes, $decimals = 2)
                     if (count($arr) > 0 && $arr[0] == 'TITLE') {
                         $title = $arr[1];
                     }
-                    echo '</tr>';
                 }
+                echo '</tr>';
+                echo '<tr>';
+                echo '<td>TOTAL ' . $totalclient . '</td>';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '<td>' . human_filesize($totalrx) . '</td>';
+                echo '<td>' . human_filesize($totaltx) . '</td>';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '<td></td>';
+                echo '</tr>';
                 fclose($file);
             ?>
             </tbody>
