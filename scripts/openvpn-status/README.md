@@ -1,0 +1,1 @@
+Simple PHP script to render OpenVPN status file.
