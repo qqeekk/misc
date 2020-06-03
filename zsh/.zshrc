@@ -7,12 +7,12 @@ export ZSH="/home/ivan/.oh-my-zsh"
 
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="robbyrussell"
-
 HIST_STAMPS="yyyy-mm-dd"
 
 plugins=(git git-flow vscode)
 
 source $ZSH/oh-my-zsh.sh
 
+PROMPT='%(?:%{%}➜ :%{%}➜ ) %{$fg[cyan]%}%c%{$reset_color%} $(git_prompt_info)$ '
 export EDITOR='vim'
 
