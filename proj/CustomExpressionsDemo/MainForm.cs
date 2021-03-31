@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace CustomExpressionsDemo
@@ -10,85 +8,39 @@ namespace CustomExpressionsDemo
     public partial class MainForm : Form
     {
         // Result4 = 3*Force*Data1/(2*Dimen_1*Dimen_2*Dimen_2) where MarkerNum = 2
-        // 3 * D1 * D3/(2 * D2 * sqr(D3)) where MarkerNum = 2
 
-        private readonly IList<Marker> markers = new List<Marker>
-        {
-            new Marker(1),
-            new Marker(2),
-            new Marker(3),
-        };
+        /*
+         * Demo formulas:
+         * 
+         * - 34 * Force * Data_1/(2 * Position * sqr(Data_1)) where MarkerNum = 1
+         * - 34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * sqr(M_1.Data_1))
+         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * P_6.Position * sqr(M_2.Data_1))
+         * 
+         */
+
+        private const string MarkerNumKey = "MarkerNum";
+        private const string PairNumKey = "PairNum";
+
+        private IList<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
 
         public MainForm()
         {
             InitializeComponent();
-
-            cbMarker.SelectedIndex = 0;
         }
 
-        private void bSet_Click(object sender, EventArgs e)
+        private void SetData()
         {
-            Marker marker = null;
-
-            switch (cbMarker.Text)
-            {
-                case "Marker 1":
-                    marker = markers[0];
-                    break;
-                case "Marker 2":
-                    marker = markers[1];
-                    break;
-                case "Marker 3":
-                    marker = markers[2];
-                    break;
-            }
-            marker.D1 = double.Parse(tbD1.Text);
-            marker.D2 = double.Parse(tbD2.Text);
-            marker.D3 = double.Parse(tbD3.Text);
-        }
-
-        private void btnCalculateWithFSharp_Click(object sender, EventArgs e)
-        {
-            var d1 = double.Parse(tbD1.Text);
-            var d2 = double.Parse(tbD2.Text);
-            var d3 = double.Parse(tbD3.Text);
-
-            var sbOut = new StringBuilder();
-            var sbErr = new StringBuilder();
-            using var inStream = new StringReader("");
-            using var outStream = new StringWriter(sbOut);
-            using var errStream = new StringWriter(sbErr);
-            try
-            {
-                var fsiConfig = FSharp.Compiler.Interactive.Shell.FsiEvaluationSession.GetDefaultConfiguration();
-                string[] argv = new string[] { "--noninteractive", "--nologo" };
-                using var fsiSession = FSharp.Compiler.Interactive.Shell.FsiEvaluationSession.Create(fsiConfig, argv, inStream, outStream, errStream,
-                    collectible: null,
-                    legacyReferenceResolver: null);
-                fsiSession.EvalInteraction($"let D1 = {d1}", new Microsoft.FSharp.Core.FSharpOption<CancellationToken>(CancellationToken.None));
-                fsiSession.EvalInteraction($"let D2 = {d2}", new Microsoft.FSharp.Core.FSharpOption<CancellationToken>(CancellationToken.None));
-                fsiSession.EvalInteraction($"let D3 = {d3}", new Microsoft.FSharp.Core.FSharpOption<CancellationToken>(CancellationToken.None));
-
-                var result = fsiSession.EvalExpression(tbFormula.Text);
-                var value = double.Parse(result.Value.ReflectionValue.ToString());
-                tbResult.Text = value.ToString();
-            }
-            catch (FSharp.Compiler.Interactive.Shell.FsiCompilationException)
-            {
-                MessageBox.Show(sbErr.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            data = Newtonsoft.Json.JsonConvert.DeserializeObject<IList<Dictionary<string, object>>>(tbMarkers.Text);
         }
 
         private void bCalcExpressionEvaluator_Click(object sender, EventArgs e)
         {
             try
             {
+                SetData();
                 var evaluator = new CodingSeb.ExpressionEvaluator.ExpressionEvaluator();
                 evaluator.PreEvaluateFunction += Evaluator_PreEvaluateFunction;
+                evaluator.PreEvaluateVariable += Evaluator_PreEvaluateVariable;
                 var formula = tbFormula.Text;
 
                 // WHERE processing.
@@ -97,12 +49,14 @@ namespace CustomExpressionsDemo
                 {
                     var wherePart = formula[(indexWhere + 5)..^0].Trim();
                     var markerNum = int.Parse(wherePart.Split('=')[1]);
-                    evaluator.Context = markers[markerNum - 1];
+                    var dictItem = data.Where(d => d.TryGetValue(MarkerNumKey, out object marker) &&
+                        int.Parse(marker.ToString()) == markerNum).FirstOrDefault();
+                    if (dictItem == null)
+                    {
+                        throw new InvalidOperationException($"Cannot get marker num {markerNum}.");
+                    }
+                    evaluator.Variables = dictItem;
                     formula = formula[0..(indexWhere - 1)];
-                }
-                else
-                {
-                    evaluator.Context = markers[0];
                 }
 
                 tbResult.Text = evaluator.Evaluate(formula).ToString();
@@ -111,6 +65,60 @@ namespace CustomExpressionsDemo
             {
                 MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void Evaluator_PreEvaluateVariable(object sender, CodingSeb.ExpressionEvaluator.VariablePreEvaluationEventArg e)
+        {
+            if (e.This == null)
+            {
+                var splitString = e.Name.Split('_', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (splitString.Length != 2)
+                {
+                    return;
+                }
+
+                var field = splitString[0] switch
+                {
+                    "M" => MarkerNumKey,
+                    "P" => PairNumKey,
+                    _ => string.Empty
+                };
+                if (string.IsNullOrEmpty(field))
+                {
+                    return;
+                }
+
+                var index = splitString[1];
+                if (index == "PeakForce")
+                {
+                    e.Value = data
+                        .Where(d => d.ContainsKey(field) && d.ContainsKey("Force"))
+                        .OrderByDescending(d => double.Parse(d["Force"].ToString()))
+                        .FirstOrDefault();
+                }
+                else
+                {
+                    e.Value = data
+                        .FirstOrDefault(d => d.ContainsKey(field) && d[field].ToString() == index);
+                }
+            }
+            else if (e.This is IDictionary<string, object> dict)
+            {
+                e.Value = dict[e.Name];
+            }
+        }
+
+        private static IDictionary<string, object> GroupByIdentifier(IList<Dictionary<string, object>> data, string id)
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (var itemDict in data)
+            {
+                if (itemDict.TryGetValue(id, out object idValue))
+                {
+                    dict[idValue.ToString()] = itemDict;
+                }
+            }
+            return dict;
         }
 
         private void Evaluator_PreEvaluateFunction(object sender, CodingSeb.ExpressionEvaluator.FunctionPreEvaluationEventArg e)
