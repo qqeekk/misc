@@ -60,22 +60,29 @@
   <data name="tbMarkers.Text" xml:space="preserve">
     <value>[{
     "MarkerNum": 1,
-    "PairNum": 6,
+    "Ext": 6,
     "Force": 10,
     "Position": 53,
     "Data_1": 3.4
 }, {
     "MarkerNum": 2,
-    "PairNum": 10,
+    "Ext": 10,
     "Force": 12,
     "Position": 55,
     "Data_1": 3.4
 }, {
     "MarkerNum": 3,
-    "PairNum": 10,
+    "Ext": 10,
     "Force": 16,
     "Position": 59,
     "Data_1": 3.6
-}]</value>
+}, {
+    "MarkerNum": 4,
+    "Ext": 1,
+    "Force": 1,
+    "Position": 3,
+    "Data_1": 99
+}]
+</value>
   </data>
 </root>

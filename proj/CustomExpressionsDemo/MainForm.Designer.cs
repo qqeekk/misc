@@ -36,12 +36,15 @@
             this.bCalcExpressionEvaluator = new System.Windows.Forms.Button();
             this.tbMarkers = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
+            this.tbPairs = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label3
             // 
+            this.label3.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(371, 9);
+            this.label3.Location = new System.Drawing.Point(694, 9);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(54, 15);
             this.label3.TabIndex = 6;
@@ -49,8 +52,9 @@
             // 
             // tbFormula
             // 
+            this.tbFormula.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.tbFormula.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.tbFormula.Location = new System.Drawing.Point(371, 27);
+            this.tbFormula.Location = new System.Drawing.Point(694, 27);
             this.tbFormula.Multiline = true;
             this.tbFormula.Name = "tbFormula";
             this.tbFormula.Size = new System.Drawing.Size(309, 155);
@@ -59,7 +63,8 @@
             // 
             // tbResult
             // 
-            this.tbResult.Location = new System.Drawing.Point(371, 344);
+            this.tbResult.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.tbResult.Location = new System.Drawing.Point(694, 344);
             this.tbResult.Name = "tbResult";
             this.tbResult.ReadOnly = true;
             this.tbResult.Size = new System.Drawing.Size(309, 23);
@@ -67,8 +72,9 @@
             // 
             // label4
             // 
+            this.label4.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(371, 326);
+            this.label4.Location = new System.Drawing.Point(694, 326);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(42, 15);
             this.label4.TabIndex = 10;
@@ -76,7 +82,8 @@
             // 
             // bCalcExpressionEvaluator
             // 
-            this.bCalcExpressionEvaluator.Location = new System.Drawing.Point(371, 202);
+            this.bCalcExpressionEvaluator.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.bCalcExpressionEvaluator.Location = new System.Drawing.Point(694, 202);
             this.bCalcExpressionEvaluator.Name = "bCalcExpressionEvaluator";
             this.bCalcExpressionEvaluator.Size = new System.Drawing.Size(206, 23);
             this.bCalcExpressionEvaluator.TabIndex = 13;
@@ -90,7 +97,7 @@
             this.tbMarkers.Location = new System.Drawing.Point(28, 27);
             this.tbMarkers.Multiline = true;
             this.tbMarkers.Name = "tbMarkers";
-            this.tbMarkers.Size = new System.Drawing.Size(309, 340);
+            this.tbMarkers.Size = new System.Drawing.Size(309, 631);
             this.tbMarkers.TabIndex = 14;
             this.tbMarkers.Text = resources.GetString("tbMarkers.Text");
             // 
@@ -103,11 +110,33 @@
             this.label1.TabIndex = 15;
             this.label1.Text = "Markerks:";
             // 
+            // tbPairs
+            // 
+            this.tbPairs.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.tbPairs.Location = new System.Drawing.Point(367, 27);
+            this.tbPairs.Multiline = true;
+            this.tbPairs.Name = "tbPairs";
+            this.tbPairs.Size = new System.Drawing.Size(309, 631);
+            this.tbPairs.TabIndex = 16;
+            this.tbPairs.Text = "[{\r\n    \"PairNum\": 1,\r\n    \"MarkerNum1\": 1,\r\n    \"MarkerNum2\": 2\r\n}, {\r\n    \"Pair" +
+    "Num\": 2,\r\n    \"MarkerNum1\": 2,\r\n    \"MarkerNum2\": 4\r\n}]";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(367, 9);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(35, 15);
+            this.label2.TabIndex = 17;
+            this.label2.Text = "Pairs:";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(714, 388);
+            this.ClientSize = new System.Drawing.Size(1037, 670);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.tbPairs);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.tbMarkers);
             this.Controls.Add(this.bCalcExpressionEvaluator);
@@ -131,5 +160,7 @@
         private System.Windows.Forms.Button bCalcExpressionEvaluator;
         private System.Windows.Forms.TextBox tbMarkers;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox tbPairs;
+        private System.Windows.Forms.Label label2;
     }
 }

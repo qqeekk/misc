@@ -5,6 +5,9 @@ using System.Windows.Forms;
 
 namespace CustomExpressionsDemo
 {
+    /// <summary>
+    /// Main form.
+    /// </summary>
     public partial class MainForm : Form
     {
         // Result4 = 3*Force*Data1/(2*Dimen_1*Dimen_2*Dimen_2) where MarkerNum = 2
@@ -14,7 +17,8 @@ namespace CustomExpressionsDemo
          * 
          * - 34 * Force * Data_1/(2 * Position * sqr(Data_1)) where MarkerNum = 1
          * - 34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * sqr(M_1.Data_1))
-         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * P_6.Position * sqr(M_2.Data_1))
+         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * M_3.Position * sqr(M_2.Data_1))
+         * - 456 * P_1.End.Force * M_PeakForce.Data_1/(2 * M_3.Position * sqr(P_2.Start.Data_1))
          * 
          */
 
@@ -22,15 +26,22 @@ namespace CustomExpressionsDemo
         private const string PairNumKey = "PairNum";
 
         private IList<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
+        private IList<Pair> pairs = new List<Pair>();
 
         public MainForm()
         {
             InitializeComponent();
+
+            if (!DesignMode)
+            {
+                tbResult.Focus();
+            }
         }
 
         private void SetData()
         {
             data = Newtonsoft.Json.JsonConvert.DeserializeObject<IList<Dictionary<string, object>>>(tbMarkers.Text);
+            pairs = Newtonsoft.Json.JsonConvert.DeserializeObject<IList<Pair>>(tbPairs.Text);
         }
 
         private void bCalcExpressionEvaluator_Click(object sender, EventArgs e)
@@ -77,29 +88,40 @@ namespace CustomExpressionsDemo
                     return;
                 }
 
-                var field = splitString[0] switch
+                // Markers processing.
+                if (splitString[0] == "M")
                 {
-                    "M" => MarkerNumKey,
-                    "P" => PairNumKey,
-                    _ => string.Empty
-                };
-                if (string.IsNullOrEmpty(field))
-                {
-                    return;
+                    var index = splitString[1];
+                    var field = MarkerNumKey;
+                    if (index == "PeakForce")
+                    {
+                        e.Value = data
+                            .Where(d => d.ContainsKey(field) && d.ContainsKey("Force"))
+                            .OrderByDescending(d => double.Parse(d["Force"].ToString()))
+                            .FirstOrDefault();
+                    }
+                    else
+                    {
+                        e.Value = data
+                            .FirstOrDefault(d => d.ContainsKey(field) && d[field].ToString() == index);
+                    }
                 }
-
-                var index = splitString[1];
-                if (index == "PeakForce")
+                // Pairs processing.
+                else if (splitString[0] == "P")
                 {
-                    e.Value = data
-                        .Where(d => d.ContainsKey(field) && d.ContainsKey("Force"))
-                        .OrderByDescending(d => double.Parse(d["Force"].ToString()))
-                        .FirstOrDefault();
-                }
-                else
-                {
-                    e.Value = data
-                        .FirstOrDefault(d => d.ContainsKey(field) && d[field].ToString() == index);
+                    var index = splitString[1];
+                    var pair = pairs.FirstOrDefault(p => p.PairNum.ToString() == index);
+                    if (pair == null)
+                    {
+                        throw new InvalidOperationException("Cannot find the pair.");
+                    }
+                    e.Value = new
+                    {
+                        Start = data
+                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum1.ToString()),
+                        End = data
+                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum2.ToString()),
+                    };
                 }
             }
             else if (e.This is IDictionary<string, object> dict)
