@@ -59,7 +59,7 @@
             this.tbFormula.Name = "tbFormula";
             this.tbFormula.Size = new System.Drawing.Size(309, 155);
             this.tbFormula.TabIndex = 7;
-            this.tbFormula.Text = "349 * Force * Data_1/(2 * Position * sqr(Data_1)) where MarkerNum = 1";
+            this.tbFormula.Text = "349 * Force * Data_1/(2 * Position * Sqr(Data_1)) where MarkerNum = 1";
             // 
             // tbResult
             // 

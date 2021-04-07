@@ -10,20 +10,22 @@ namespace CustomExpressionsDemo
     /// </summary>
     public partial class MainForm : Form
     {
-        // Result4 = 3*Force*Data1/(2*Dimen_1*Dimen_2*Dimen_2) where MarkerNum = 2
+        // Original: Result4 = 3*Force*Data1/(2*Dimen_1*Dimen_2*Dimen_2) where MarkerNum = 2
 
         /*
          * Demo formulas:
-         * 
-         * - 34 * Force * Data_1/(2 * Position * sqr(Data_1)) where MarkerNum = 1
-         * - 34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * sqr(M_1.Data_1))
-         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * M_3.Position * sqr(M_2.Data_1))
-         * - 456 * P_1.End.Force * M_PeakForce.Data_1/(2 * M_3.Position * sqr(P_2.Start.Data_1))
-         * 
+         *
+         * - 34 * Force * Data_1/(2 * Position * Sqr(Data_1)) where MarkerNum = 1
+         * - 34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * Sqr(M_1.Data_1))
+         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(M_2.Data_1))
+         * - 456 * P_1.End.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(P_2.Start.Data_1))
+         * - ForceSum(P_2) + 10.4
+         *
          */
 
         private const string MarkerNumKey = "MarkerNum";
         private const string PairNumKey = "PairNum";
+        private const string ForceKey = "Force";
 
         private IList<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
         private IList<Pair> pairs = new List<Pair>();
@@ -115,13 +117,17 @@ namespace CustomExpressionsDemo
                     {
                         throw new InvalidOperationException("Cannot find the pair.");
                     }
-                    e.Value = new
+                    if (pair.Start == null)
                     {
-                        Start = data
-                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum1.ToString()),
-                        End = data
-                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum2.ToString()),
-                    };
+                        pair.Start = data
+                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum1.ToString());
+                    }
+                    if (pair.End == null)
+                    {
+                        pair.End = data
+                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum2.ToString());
+                    }
+                    e.Value = pair;
                 }
             }
             else if (e.This is IDictionary<string, object> dict)
@@ -145,9 +151,15 @@ namespace CustomExpressionsDemo
 
         private void Evaluator_PreEvaluateFunction(object sender, CodingSeb.ExpressionEvaluator.FunctionPreEvaluationEventArg e)
         {
-            if (e.Name.Equals("sqr") && e.Args.Count == 1)
+            if (e.Name.Equals("Sqr") && e.Args.Count == 1)
             {
-                e.Value = Math.Pow(double.Parse(e.EvaluateArg(0).ToString()), 2);
+                var arg = e.Args[0];
+                e.Value = e.Evaluator.Evaluate($"({arg} * {arg})");
+            }
+            else if (e.Name.Equals("ForceSum") && e.Args.Count == 1)
+            {
+                var arg = e.Args[0];
+                e.Value = e.Evaluator.Evaluate($"({arg}.Start.Force + {arg}.End.Force)");
             }
         }
     }
