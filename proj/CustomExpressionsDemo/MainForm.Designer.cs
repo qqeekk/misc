@@ -38,6 +38,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.tbPairs = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.lbExamples = new System.Windows.Forms.ListBox();
+            this.tbAutoMarkers = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label3
@@ -59,7 +61,6 @@
             this.tbFormula.Name = "tbFormula";
             this.tbFormula.Size = new System.Drawing.Size(309, 155);
             this.tbFormula.TabIndex = 7;
-            this.tbFormula.Text = "349 * Force * Data_1/(2 * Position * Sqr(Data_1)) where MarkerNum = 1";
             // 
             // tbResult
             // 
@@ -97,7 +98,7 @@
             this.tbMarkers.Location = new System.Drawing.Point(28, 27);
             this.tbMarkers.Multiline = true;
             this.tbMarkers.Name = "tbMarkers";
-            this.tbMarkers.Size = new System.Drawing.Size(309, 631);
+            this.tbMarkers.Size = new System.Drawing.Size(309, 485);
             this.tbMarkers.TabIndex = 14;
             this.tbMarkers.Text = resources.GetString("tbMarkers.Text");
             // 
@@ -112,14 +113,16 @@
             // 
             // tbPairs
             // 
+            this.tbPairs.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
             this.tbPairs.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.tbPairs.Location = new System.Drawing.Point(367, 27);
             this.tbPairs.Multiline = true;
             this.tbPairs.Name = "tbPairs";
             this.tbPairs.Size = new System.Drawing.Size(309, 631);
             this.tbPairs.TabIndex = 16;
-            this.tbPairs.Text = "[{\r\n    \"PairNum\": 1,\r\n    \"MarkerNum1\": 1,\r\n    \"MarkerNum2\": 2\r\n}, {\r\n    \"Pair" +
-    "Num\": 2,\r\n    \"MarkerNum1\": 2,\r\n    \"MarkerNum2\": 4\r\n}]";
+            this.tbPairs.Text = "[{\r\n    \"Name\": \"P1\",\r\n    \"MarkerNum1\": 1,\r\n    \"MarkerNum2\": 2\r\n}, {\r\n    \"Name" +
+    "\":\"P2\",\r\n    \"MarkerNum1\": 2,\r\n    \"MarkerNum2\": 4\r\n}]";
             // 
             // label2
             // 
@@ -130,11 +133,44 @@
             this.label2.TabIndex = 17;
             this.label2.Text = "Pairs:";
             // 
+            // lbExamples
+            // 
+            this.lbExamples.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.lbExamples.FormattingEnabled = true;
+            this.lbExamples.ItemHeight = 15;
+            this.lbExamples.Items.AddRange(new object[] {
+            "34 * Force * Data_1/(2 * Position * Sqr(Data_1)) where MarkerNum = 1",
+            "34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * Sqr(M_1.Data_1))",
+            "456 * M_2.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(M_2.Data_1))",
+            "456 * P1.End.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(P2.Start.Data_1))" +
+                "",
+            "ForceSum(P2) + 10.4",
+            "2+2*2",
+            "(2+2)*2"});
+            this.lbExamples.Location = new System.Drawing.Point(694, 495);
+            this.lbExamples.Name = "lbExamples";
+            this.lbExamples.Size = new System.Drawing.Size(309, 154);
+            this.lbExamples.TabIndex = 18;
+            this.lbExamples.SelectedIndexChanged += new System.EventHandler(this.lbExamples_SelectedIndexChanged);
+            // 
+            // tbAutoMarkers
+            // 
+            this.tbAutoMarkers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.tbAutoMarkers.Location = new System.Drawing.Point(28, 518);
+            this.tbAutoMarkers.Multiline = true;
+            this.tbAutoMarkers.Name = "tbAutoMarkers";
+            this.tbAutoMarkers.ReadOnly = true;
+            this.tbAutoMarkers.Size = new System.Drawing.Size(309, 140);
+            this.tbAutoMarkers.TabIndex = 19;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1037, 670);
+            this.Controls.Add(this.tbAutoMarkers);
+            this.Controls.Add(this.lbExamples);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.tbPairs);
             this.Controls.Add(this.label1);
@@ -147,6 +183,7 @@
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.Text = "Custom Expressions Demo";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -162,5 +199,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox tbPairs;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.ListBox lbExamples;
+        private System.Windows.Forms.TextBox tbAutoMarkers;
     }
 }

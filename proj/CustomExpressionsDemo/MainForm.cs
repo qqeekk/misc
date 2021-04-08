@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -12,23 +13,14 @@ namespace CustomExpressionsDemo
     {
         // Original: Result4 = 3*Force*Data1/(2*Dimen_1*Dimen_2*Dimen_2) where MarkerNum = 2
 
-        /*
-         * Demo formulas:
-         *
-         * - 34 * Force * Data_1/(2 * Position * Sqr(Data_1)) where MarkerNum = 1
-         * - 34 * M_1.Force * M_1.Data_1/(2 * M_1.Position * Sqr(M_1.Data_1))
-         * - 456 * M_2.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(M_2.Data_1))
-         * - 456 * P_1.End.Force * M_PeakForce.Data_1/(2 * M_3.Position * Sqr(P_2.Start.Data_1))
-         * - ForceSum(P_2) + 10.4
-         *
-         */
-
         private const string MarkerNumKey = "MarkerNum";
         private const string PairNumKey = "PairNum";
         private const string ForceKey = "Force";
 
         private IList<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
         private IList<Pair> pairs = new List<Pair>();
+
+        private Dictionary<string, Var> variables = new Dictionary<string, Var>();
 
         public MainForm()
         {
@@ -44,6 +36,58 @@ namespace CustomExpressionsDemo
         {
             data = Newtonsoft.Json.JsonConvert.DeserializeObject<IList<Dictionary<string, object>>>(tbMarkers.Text);
             pairs = Newtonsoft.Json.JsonConvert.DeserializeObject<IList<Pair>>(tbPairs.Text);
+
+            variables.Clear();
+
+            foreach (var m in data)
+            {
+                DefineVar(m["Name"]?.ToString(), VarType.Marker, m);
+            }
+
+            foreach (var p in pairs)
+            {
+                if (p.Start == null)
+                {
+                    p.Start = data
+                        .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == p.MarkerNum1.ToString());
+                }
+                if (p.End == null)
+                {
+                    p.End = data
+                        .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == p.MarkerNum2.ToString());
+                }
+
+                DefineVar(p.Name.ToString(), VarType.Pair, p);
+            }
+
+            var peakForceMarker = data
+                .Where(d => d.ContainsKey("Force"))
+                .OrderByDescending(d => double.Parse(d["Force"].ToString()))
+                .FirstOrDefault();
+
+            if (peakForceMarker != null)
+            {
+                DefineVar("M_PeakForce", VarType.Marker, peakForceMarker);
+
+                tbAutoMarkers.Text = "M_PeakForce:\n" + JsonConvert.SerializeObject(peakForceMarker);
+            }
+        }
+
+        private void DefineVar(string varName, VarType varType, object data)
+        {
+            if (string.IsNullOrEmpty(varName))
+            {
+                throw new Exception("Name not defined.");
+            }
+
+            varName = varName?.ToUpperInvariant();
+
+            if (variables.ContainsKey(varName))
+            {
+                throw new Exception("Duplicated var.");
+            }
+
+            variables[varName] = new Var { Data = data, VarType = varType };
         }
 
         private void bCalcExpressionEvaluator_Click(object sender, EventArgs e)
@@ -72,7 +116,7 @@ namespace CustomExpressionsDemo
                     formula = formula[0..(indexWhere - 1)];
                 }
 
-                tbResult.Text = evaluator.Evaluate(formula).ToString();
+                tbResult.Text = evaluator.Evaluate(formula)?.ToString();
             }
             catch (Exception ex)
             {
@@ -84,50 +128,11 @@ namespace CustomExpressionsDemo
         {
             if (e.This == null)
             {
-                var splitString = e.Name.Split('_', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (splitString.Length != 2)
-                {
-                    return;
-                }
+                var name = e.Name.ToUpperInvariant();
 
-                // Markers processing.
-                if (splitString[0] == "M")
+                if (variables.ContainsKey(name))
                 {
-                    var index = splitString[1];
-                    var field = MarkerNumKey;
-                    if (index == "PeakForce")
-                    {
-                        e.Value = data
-                            .Where(d => d.ContainsKey(field) && d.ContainsKey("Force"))
-                            .OrderByDescending(d => double.Parse(d["Force"].ToString()))
-                            .FirstOrDefault();
-                    }
-                    else
-                    {
-                        e.Value = data
-                            .FirstOrDefault(d => d.ContainsKey(field) && d[field].ToString() == index);
-                    }
-                }
-                // Pairs processing.
-                else if (splitString[0] == "P")
-                {
-                    var index = splitString[1];
-                    var pair = pairs.FirstOrDefault(p => p.PairNum.ToString() == index);
-                    if (pair == null)
-                    {
-                        throw new InvalidOperationException("Cannot find the pair.");
-                    }
-                    if (pair.Start == null)
-                    {
-                        pair.Start = data
-                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum1.ToString());
-                    }
-                    if (pair.End == null)
-                    {
-                        pair.End = data
-                            .FirstOrDefault(d => d.ContainsKey(MarkerNumKey) && d[MarkerNumKey].ToString() == pair.MarkerNum2.ToString());
-                    }
-                    e.Value = pair;
+                    e.Value = variables[name].Data;
                 }
             }
             else if (e.This is IDictionary<string, object> dict)
@@ -162,5 +167,25 @@ namespace CustomExpressionsDemo
                 e.Value = e.Evaluator.Evaluate($"({arg}.Start.Force + {arg}.End.Force)");
             }
         }
+
+        private void lbExamples_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            tbFormula.Text = lbExamples.SelectedItem.ToString();
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            lbExamples.SelectedIndex = 0;
+        }
+    }
+
+    internal enum VarType
+    { Undefined, Marker, Pair };
+
+    internal class Var
+    {
+        public VarType VarType { get; set; }
+
+        public object Data { get; set; }
     }
 }

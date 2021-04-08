@@ -12,6 +12,8 @@ namespace CustomExpressionsDemo
         /// </summary>
         public int PairNum { get; set; }
 
+        public string Name { get; set; }
+
         /// <summary>
         /// Marker 1 number.
         /// </summary>
