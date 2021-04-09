@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using Newtonsoft.Json;
 
 namespace CustomExpressionsDemo
 {
@@ -96,6 +96,13 @@ namespace CustomExpressionsDemo
             {
                 SetData();
                 var evaluator = new CodingSeb.ExpressionEvaluator.ExpressionEvaluator();
+                evaluator.OptionStringEvaluationActive = false;
+                evaluator.OptionCharEvaluationActive = false;
+                evaluator.OptionEvaluateFunctionActive = false;
+                evaluator.OptionVariableAssignationActive = false;
+                evaluator.OptionScriptEvaluateFunctionActive = false;
+                evaluator.OptionInlineNamespacesEvaluationActive = false;
+                evaluator.Namespaces.Clear();
                 evaluator.PreEvaluateFunction += Evaluator_PreEvaluateFunction;
                 evaluator.PreEvaluateVariable += Evaluator_PreEvaluateVariable;
                 var formula = tbFormula.Text;
@@ -180,7 +187,11 @@ namespace CustomExpressionsDemo
     }
 
     internal enum VarType
-    { Undefined, Marker, Pair };
+    {
+        Undefined,
+        Marker,
+        Pair
+    };
 
     internal class Var
     {
