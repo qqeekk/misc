@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvokeChat", "InvokeChat\InvokeChat.csproj", "{49D07BEF-4BD2-4A01-9E5D-043F9EDE75E0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvokeChat.Backend.Host", "InvokeChat.Backend.Host\InvokeChat.Backend.Host.csproj", "{6525D6AA-3A35-4ABF-9D6A-2AA84BFD1AB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvokeChat.Client", "InvokeChat.Client\InvokeChat.Client.csproj", "{49758BB8-A899-4019-A7BC-4F441478A72D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvokeChat.Backend.Host.Aws", "InvokeChat.Backend.Host.Aws\InvokeChat.Backend.Host.Aws.csproj", "{977C16D8-8965-400D-B32E-2B8FAF233156}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvokeChat.Client.Aws", "InvokeChat.Client.Aws\InvokeChat.Client.Aws.csproj", "{AFBDA453-7A81-4D1B-9D0F-2B5240C8F062}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{2EA1C26C-FEE4-4E2C-A7CA-09E0A3373C35}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{49D07BEF-4BD2-4A01-9E5D-043F9EDE75E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49D07BEF-4BD2-4A01-9E5D-043F9EDE75E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49D07BEF-4BD2-4A01-9E5D-043F9EDE75E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49D07BEF-4BD2-4A01-9E5D-043F9EDE75E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6525D6AA-3A35-4ABF-9D6A-2AA84BFD1AB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6525D6AA-3A35-4ABF-9D6A-2AA84BFD1AB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6525D6AA-3A35-4ABF-9D6A-2AA84BFD1AB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6525D6AA-3A35-4ABF-9D6A-2AA84BFD1AB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49758BB8-A899-4019-A7BC-4F441478A72D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49758BB8-A899-4019-A7BC-4F441478A72D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49758BB8-A899-4019-A7BC-4F441478A72D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49758BB8-A899-4019-A7BC-4F441478A72D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{977C16D8-8965-400D-B32E-2B8FAF233156}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{977C16D8-8965-400D-B32E-2B8FAF233156}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{977C16D8-8965-400D-B32E-2B8FAF233156}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{977C16D8-8965-400D-B32E-2B8FAF233156}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFBDA453-7A81-4D1B-9D0F-2B5240C8F062}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFBDA453-7A81-4D1B-9D0F-2B5240C8F062}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFBDA453-7A81-4D1B-9D0F-2B5240C8F062}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFBDA453-7A81-4D1B-9D0F-2B5240C8F062}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
