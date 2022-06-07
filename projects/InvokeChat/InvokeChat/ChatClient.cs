@@ -6,7 +6,7 @@ public class ChatClient
 
     public string Name { get; set; } = "<unknown>";
 
-    public string PlayerSessionId { get; set; }
+    public string PlayerSessionId { get; set; } = string.Empty;
 
     /// <inheritdoc />
     public override string ToString()

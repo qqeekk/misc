@@ -1,4 +1,5 @@
 using System.Text;
+using Aws.GameLift;
 using Aws.GameLift.Server;
 using Aws.GameLift.Server.Model;
 
@@ -9,13 +10,10 @@ public sealed class AwsManager
     private InvokeChatServer? server;
     private readonly int port = Random.Shared.Next(12_000, 40_000);
 
-    public void Start()
+    public void Start(string logFile)
     {
         var response = GameLiftServerAPI.InitSDK();
-        if (!response.Success)
-        {
-            throw new InvalidOperationException(response.Error.ToString());
-        }
+        ProcessResponse(response);
 
         response = GameLiftServerAPI.ProcessReady(new ProcessParameters
         {
@@ -23,12 +21,14 @@ public sealed class AwsManager
             OnHealthCheck = OnHealthCheck,
             OnStartGameSession = OnStartGameSession,
             OnProcessTerminate = OnProcessTerminate,
-            OnUpdateGameSession = OnUpdateGameSession
+            OnUpdateGameSession = OnUpdateGameSession,
+            LogParameters = new LogParameters(new List<string>
+            {
+                logFile,
+                "log4net.log"
+            })
         });
-        if (!response.Success)
-        {
-            throw new InvalidOperationException(response.Error.ToString());
-        }
+        ProcessResponse(response);
 
         Console.WriteLine($"Started on port {port}.");
     }
@@ -41,6 +41,8 @@ public sealed class AwsManager
     private void OnProcessTerminate()
     {
         Console.WriteLine("OnProcessTerminate call.");
+        var response = GameLiftServerAPI.ProcessEnding();
+        ProcessResponse(response);
     }
 
     private void OnStartGameSession(GameSession gamesession)
@@ -56,15 +58,20 @@ public sealed class AwsManager
         server.StartLoopInThread(port);
 
         var response = GameLiftServerAPI.ActivateGameSession();
-        if (!response.Success)
-        {
-            throw new InvalidOperationException(response.Error.ToString());
-        }
+        ProcessResponse(response);
         Console.WriteLine($"Session {gamesession.GameSessionId} activated.");
     }
 
     private bool OnHealthCheck()
     {
         return true;
+    }
+
+    private void ProcessResponse(GenericOutcome outcome)
+    {
+        if (!outcome.Success)
+        {
+            throw new InvalidOperationException(outcome.Error.ToString());
+        }
     }
 }

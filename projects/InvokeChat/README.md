@@ -11,11 +11,11 @@ Download `GameLiftLocal.jar`. It can be found by following URLs:
 
 The start client and server:
 
-```
-0> sudo archlinux-java set java-8-jre/jre
-1> java -jar GameLiftLocal.jar -p 9080
-2> ./InvokeChat.Backend.Host.Aws/bin/Debug/net6.0/chathostaws
-3> ./InvokeChat.Client.Aws/bin/Debug/net6.0/chatclientaws
+```bash
+$ sudo archlinux-java set java-8-jre/jre
+$ java -jar GameLiftLocal.jar -p 9080
+$ ./InvokeChat.Backend.Host.Aws/bin/Debug/net6.0/chathostaws
+$ ./InvokeChat.Client.Aws/bin/Debug/net6.0/chatclientaws
 ```
 
 ## Publish
@@ -25,7 +25,24 @@ The start client and server:
 
 ## AWS GameLift Commands
 
-- `aws gamelift upload-build --name invokechat --build-version "0.1.0" --build-root ./build --operating-system AMAZON_LINUX --region us-west-2`
+**Upload build**
+
+- `aws gamelift upload-build --name invokechat --build-version "0.1.0" --build-root ./build --operating-system AMAZON_LINUX_2 --region us-west-2`
+- `aws gamelift update-build --build-id build-X`
+
+**Get SSH access**
+
+```bash
+set FLEETID "fleet-4bb6b510-8ebd-441a-b50c-87cd6d8ebead"
+set INSTANCEID $(aws gamelift describe-instances --fleet-id $FLEETID --query "Instances[0].InstanceId" --output text)
+set INSTANCEDNS $(aws gamelift describe-instances --fleet-id $FLEETID --query "Instances[0].DnsName" --output text)
+set IPADDRESS $(curl ifconfig.co/)
+rm privkey.pem -f
+aws gamelift get-instance-access --fleet-id $FLEETID --instance-id $INSTANCEID --query "InstanceAccess.Credentials.Secret" --output text > privkey.pem
+chmod 400 privkey.pem
+aws gamelift update-fleet-port-settings --fleet-id $FLEETID --inbound-permission-authorizations "FromPort=22,ToPort=22,IpRange=$IPADDRESS/32,Protocol=TCP"
+ssh -i privkey.pem gl-user-remote@$INSTANCEDNS
+```
 
 ## Links
 

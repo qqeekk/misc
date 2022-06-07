@@ -1,9 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using McMaster.Extensions.CommandLineUtils;
-using InvokeChat;
-using InvokeChat.Client;
-using InvokeChat.Client.Aws;
+
+namespace InvokeChat.Client.Aws;
 
 [Command(Name = "chatclientaws", Description = "Chat client AWS")]
 [VersionOptionFromMember("--version", MemberName = nameof(GetVersion))]

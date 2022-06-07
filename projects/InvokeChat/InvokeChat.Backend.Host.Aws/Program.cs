@@ -1,13 +1,15 @@
 ﻿using System.Reflection;
-using Aws.GameLift.Server;
-using InvokeChat.Backend.Host.Aws;
 using McMaster.Extensions.CommandLineUtils;
+
+namespace InvokeChat.Backend.Host.Aws;
 
 [Command(Name = "chathostaws", Description = "Chat host AWS")]
 [VersionOptionFromMember("--version", MemberName = nameof(GetVersion))]
 [HelpOption("-?|-h|--help")]
 public class Program
 {
+    public const string LogFile = "./log.log";
+
     public static Task<int> Main(string[] args)
     {
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
@@ -26,7 +28,7 @@ public class Program
     public int OnExecute(CommandLineApplication app)
     {
         var awsManager = new AwsManager();
-        awsManager.Start();
+        awsManager.Start(LogFile);
         Console.ReadKey();
         return 0;
     }
@@ -37,6 +39,7 @@ public class Program
         {
             case Exception exception:
                 Console.Error.WriteLine(exception.Message);
+                File.AppendAllText(LogFile, exception.Message + "\n");
                 break;
         }
         Environment.Exit(1);
