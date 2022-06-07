@@ -150,27 +150,27 @@ namespace Aws.GameLift.Server
             }
 
             Log.Debug("Reporting health using the OnHealthCheck callback.");
-            // TODO: Migrate to .NET 6!!!
-            /*IAsyncResult result = processParameters.OnHealthCheck.BeginInvoke(null, null);
+
+            var taskResult = Task.Run(() => processParameters.OnHealthCheck());
 
             GenericOutcome outcome;
-            if (!result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(HEALTHCHECK_TIMEOUT_SECONDS)))
+            if (Task.WhenAny(
+                    taskResult, Task.Delay(TimeSpan.FromSeconds(HEALTHCHECK_TIMEOUT_SECONDS))
+                    ).GetAwaiter().GetResult() == taskResult)
             {
-                Log.Debug("Timed out waiting for health response from the server process. Reporting as unhealthy.");
-                outcome = httpClientInvoker.ReportHealth(false).Result;
+                Log.DebugFormat("Received health response from the server process: {0}", taskResult.Result);
+                outcome = httpClientInvoker.ReportHealth(taskResult.Result).Result;
             }
             else
             {
-                bool healthCheckResult = processParameters.OnHealthCheck.EndInvoke(result);
-
-                Log.DebugFormat("Received health response from the server process: {0}", healthCheckResult);
-                outcome = httpClientInvoker.ReportHealth(healthCheckResult).Result;
+                Log.Debug("Timed out waiting for health response from the server process. Reporting as unhealthy.");
+                outcome = httpClientInvoker.ReportHealth(false).Result;
             }
 
             if (!outcome.Success)
             {
                 Log.Warn("Could not send health status");
-            }*/
+            }
         }
 
         public GenericOutcome InitializeNetworking()

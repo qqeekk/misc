@@ -2,10 +2,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using Aws.GameLift.Server;
 using InvokeChat.Commands;
 
-namespace InvokeChat.Backend.Host.Aws;
+namespace InvokeChat;
 
 public sealed class InvokeChatServer
 {
@@ -41,8 +40,8 @@ public sealed class InvokeChatServer
                 clients.Add(client, tcpClient);
                 Console.WriteLine("Someone connected.");
 
-                var thread = new Thread(HandleClient);
-                thread.Start(client);
+                var clientThread = new Thread(HandleClient);
+                clientThread.Start(client);
             }
         }
     }
@@ -61,7 +60,7 @@ public sealed class InvokeChatServer
             tcpClient = clients[client];
         }
 
-        var buffer = new byte[1024 * 8];
+        var buffer = new byte[1024 * 10];
         while (true)
         {
             var stream = tcpClient.GetStream();
@@ -74,6 +73,7 @@ public sealed class InvokeChatServer
                 return;
             }
 
+            // There might be partial read, no workaround for now!
             var data = Encoding.Unicode.GetString(buffer, 0, bytesCount);
             ChatCommand? command;
             try
@@ -102,12 +102,6 @@ public sealed class InvokeChatServer
             var connectCommand = (ConnectChatCommand)command;
             client.Id = connectCommand.Id;
             client.Name = connectCommand.Name;
-            client.PlayerSessionId = connectCommand.PlayerSessionId;
-            var response = GameLiftServerAPI.AcceptPlayerSession(client.PlayerSessionId);
-            if (!response.Success)
-            {
-                throw new InvalidOperationException(response.Error.ToString());
-            }
             Console.WriteLine($"{client} connected.");
             Broadcast(client, connectCommand);
         }

@@ -9,12 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="AWSSDK.GameLift" Version="3.7.1.83" />
+      <PackageReference Include="AWSSDK.GameLift" Version="3.7.1.84" />
       <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\InvokeChat.Client\InvokeChat.Client.csproj" />
       <ProjectReference Include="..\InvokeChat\InvokeChat.csproj" />
     </ItemGroup>
 

@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
+using InvokeChat;
 using McMaster.Extensions.CommandLineUtils;
-using InvokeChat.Backend.Host;
 
 [Command(Name = "chathost", Description = "Chat host")]
 [VersionOptionFromMember("--version", MemberName = nameof(GetVersion))]

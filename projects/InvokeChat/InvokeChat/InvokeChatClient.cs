@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using InvokeChat.Commands;
 
-namespace InvokeChat.Client;
+namespace InvokeChat;
 
 public class InvokeChatClient
 {

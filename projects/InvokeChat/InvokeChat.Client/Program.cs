@@ -2,7 +2,6 @@
 using System.Reflection;
 using McMaster.Extensions.CommandLineUtils;
 using InvokeChat;
-using InvokeChat.Client;
 
 [Command(Name = "chatclient", Description = "Chat client")]
 [VersionOptionFromMember("--version", MemberName = nameof(GetVersion))]
