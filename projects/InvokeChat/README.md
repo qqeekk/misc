@@ -22,6 +22,7 @@ $ ./InvokeChat.Client.Aws/bin/Debug/net6.0/chatclientaws
 
 - `dotnet publish ./InvokeChat.Backend.Host.Aws/InvokeChat.Backend.Host.Aws.csproj -r linux-x64 -c Release --self-contained -p:PublishSingleFile=true -o ./build`
 - `dotnet publish ./InvokeChat.Client.Aws/InvokeChat.Client.Aws.csproj -r linux-x64 -c Release --self-contained -p:PublishSingleFile=true -o ./build`
+- `dotnet publish ./WebSocketTest/WebSocketTest.csproj -r linux-x64 -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./build`
 
 ## AWS GameLift Commands
 

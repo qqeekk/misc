@@ -17,9 +17,12 @@ public class AwsManager
 
     public AwsManager()
     {
+        // All available service URLS:
+        // - https://docs.aws.amazon.com/general/latest/gr/rande.html
+        // - https://docs.aws.amazon.com/general/latest/gr/gamelift.html
         var config = new AmazonGameLiftConfig
         {
-            ServiceURL = "http://localhost:9080"
+            ServiceURL = FleetId.EndsWith("123") ? "http://localhost:9080" : @"https://gamelift.us-west-2.amazonaws.com"
         };
         gameLiftClient = new AmazonGameLiftClient(new AnonymousAWSCredentials(), config);
     }

@@ -47,7 +47,6 @@ public sealed class AwsManager
 
     private void OnStartGameSession(GameSession gamesession)
     {
-        gamesession.MaximumPlayerSessionCount = 20;
         var sb = new StringBuilder()
             .AppendLine("OnStartGameSession call.")
             .AppendLine($"sessionId={gamesession.GameSessionId}.")
