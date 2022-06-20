@@ -29,7 +29,7 @@ public class Program
     {
         var awsManager = new AwsManager();
         awsManager.Start(LogFile);
-        Console.ReadKey();
+        Thread.Sleep(Timeout.Infinite);
         return 0;
     }
 
