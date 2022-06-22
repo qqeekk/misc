@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AntiSoft.SensoGraph", "AntiSoft.SensoGraph\AntiSoft.SensoGraph.csproj", "{0473F517-3308-4F42-9A3A-D415FE7E2D68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AntiSoft.SensoGraph.Domain", "AntiSoft.SensoGraph.Domain\AntiSoft.SensoGraph.Domain.csproj", "{32926EC7-F30D-426C-BA44-E5617845372F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0473F517-3308-4F42-9A3A-D415FE7E2D68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0473F517-3308-4F42-9A3A-D415FE7E2D68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0473F517-3308-4F42-9A3A-D415FE7E2D68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0473F517-3308-4F42-9A3A-D415FE7E2D68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32926EC7-F30D-426C-BA44-E5617845372F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32926EC7-F30D-426C-BA44-E5617845372F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32926EC7-F30D-426C-BA44-E5617845372F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32926EC7-F30D-426C-BA44-E5617845372F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
