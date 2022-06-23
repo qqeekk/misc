@@ -104,6 +104,7 @@ public class AwsManager
         ValidateWebResponse(response);
         var sb = new StringBuilder();
         DumpPlayerSession(response.PlayerSession, sb);
+        playerSessions[response.PlayerSession.PlayerSessionId] = response.PlayerSession;
         Console.WriteLine(sb);
     }
 
