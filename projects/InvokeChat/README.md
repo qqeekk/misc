@@ -18,6 +18,8 @@ $ ./InvokeChat.Backend.Host.Aws/bin/Debug/net6.0/chathostaws
 $ ./InvokeChat.Client.Aws/bin/Debug/net6.0/chatclientaws
 ```
 
+The server port range is 12000-40000 TCP.
+
 ## Publish
 
 - `dotnet publish ./InvokeChat.Backend.Host.Aws/InvokeChat.Backend.Host.Aws.csproj -r linux-x64 -c Release --self-contained -p:PublishSingleFile=true -o ./build`
@@ -31,10 +33,22 @@ $ ./InvokeChat.Client.Aws/bin/Debug/net6.0/chatclientaws
 - `aws gamelift upload-build --name invokechat --build-version "0.1.0" --build-root ./build --operating-system AMAZON_LINUX_2 --region us-west-2`
 - `aws gamelift update-build --build-id build-X`
 
+**Create fleet**
+
+```bash
+aws gamelift create-fleet --name InvokeChat \
+  --build-id build-32dc72d5-a939-491b-987f-a2b11ca46eca \
+  --fleet-type SPOT \
+  --ec2-instance-type c4.large \
+  --ec2-inbound-permissions="FromPort=12000,ToPort=40000,IpRange=0.0.0.0/0,Protocol=TCP" \
+  --locations Location=us-west-2 \
+  --runtime-configuration ServerProcesses="[{LaunchPath=/local/game/chathostaws,ConcurrentExecutions=3}]"
+```
+
 **Get SSH access**
 
 ```bash
-set FLEETID "fleet-4bb6b510-8ebd-441a-b50c-87cd6d8ebead"
+set FLEETID "fleet-8c7c8d6e-a30f-4be1-b1b0-2a66071aa848"
 set INSTANCEID $(aws gamelift describe-instances --fleet-id $FLEETID --query "Instances[0].InstanceId" --output text)
 set INSTANCEDNS $(aws gamelift describe-instances --fleet-id $FLEETID --query "Instances[0].DnsName" --output text)
 set IPADDRESS $(curl ifconfig.co/)

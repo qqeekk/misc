@@ -2,9 +2,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using Aws.GameLift.Server;
 using InvokeChat.Commands;
 
-namespace InvokeChat;
+namespace InvokeChat.Backend.Host.Aws;
 
 public sealed class InvokeChatServer
 {
@@ -102,7 +103,10 @@ public sealed class InvokeChatServer
             var connectCommand = (ConnectChatCommand)command;
             client.Id = connectCommand.Id;
             client.Name = connectCommand.Name;
-            Console.WriteLine($"{client} connected.");
+            client.PlayerSessionId = connectCommand.PlayerSessionId;
+            Console.WriteLine($"{client} connected with id {client.PlayerSessionId}.");
+            var response = GameLiftServerAPI.AcceptPlayerSession(client.PlayerSessionId);
+            AwsUtils.ProcessResponse(response);
             Broadcast(client, connectCommand);
         }
         else if (command.Command == ChatCommand.CommandType.Disconnect)
@@ -114,6 +118,8 @@ public sealed class InvokeChatServer
             tcpClient.Client.Shutdown(SocketShutdown.Both);
             tcpClient.Close();
             Console.WriteLine($"{client} disconnected.");
+            var response = GameLiftServerAPI.RemovePlayerSession(client.PlayerSessionId);
+            AwsUtils.ProcessResponse(response);
             Broadcast(client, command);
         }
         else if (command.Command == ChatCommand.CommandType.SendMessage)

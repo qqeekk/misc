@@ -1,5 +1,4 @@
 using System.Text;
-using Aws.GameLift;
 using Aws.GameLift.Server;
 using Aws.GameLift.Server.Model;
 
@@ -13,7 +12,7 @@ public sealed class AwsManager
     public void Start(string logFile)
     {
         var response = GameLiftServerAPI.InitSDK();
-        ProcessResponse(response);
+        AwsUtils.ProcessResponse(response);
 
         response = GameLiftServerAPI.ProcessReady(new ProcessParameters
         {
@@ -28,7 +27,7 @@ public sealed class AwsManager
                 "log4net.log"
             })
         });
-        ProcessResponse(response);
+        AwsUtils.ProcessResponse(response);
 
         Console.WriteLine($"Started on port {port}.");
     }
@@ -42,7 +41,7 @@ public sealed class AwsManager
     {
         Console.WriteLine("OnProcessTerminate call.");
         var response = GameLiftServerAPI.ProcessEnding();
-        ProcessResponse(response);
+        AwsUtils.ProcessResponse(response);
     }
 
     private void OnStartGameSession(GameSession gamesession)
@@ -57,20 +56,12 @@ public sealed class AwsManager
         server.StartLoopInThread(port);
 
         var response = GameLiftServerAPI.ActivateGameSession();
-        ProcessResponse(response);
+        AwsUtils.ProcessResponse(response);
         Console.WriteLine($"Session {gamesession.GameSessionId} activated.");
     }
 
     private bool OnHealthCheck()
     {
         return true;
-    }
-
-    private void ProcessResponse(GenericOutcome outcome)
-    {
-        if (!outcome.Success)
-        {
-            throw new InvalidOperationException(outcome.Error.ToString());
-        }
     }
 }

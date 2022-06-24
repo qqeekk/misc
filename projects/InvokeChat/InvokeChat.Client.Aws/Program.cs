@@ -16,6 +16,15 @@ public class Program
     [Option(Description = "Player GUID")]
     public string PlayerId { get; } = Guid.NewGuid().ToString();
 
+    [Option("--access-key", Description = "AWS access key")]
+    public string? AccessKey { get; }
+
+    [Option("--secret-key", Description = "AWS secret key")]
+    public string? SecretKey { get; }
+
+    [Option("--alias-id", Description = "AWS GameLift alias id")]
+    public string? AliasId { get; }
+
     public static Task<int> Main(string[] args)
     {
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
@@ -34,7 +43,9 @@ public class Program
     /// <returns>Exit code.</returns>
     public async Task<int> OnExecute(CommandLineApplication app, CancellationToken cancellationToken)
     {
-        var awsManager = new AwsManager();
+        var awsManager = !string.IsNullOrEmpty(AccessKey) && !string.IsNullOrEmpty(SecretKey) && !string.IsNullOrEmpty(AliasId)
+            ? new AwsManager(AccessKey, SecretKey, AliasId)
+            : new AwsManager();
         await awsManager.DescribeGameSessionsAsync(dump: false, cancellationToken);
         await awsManager.DescribePlayerSessionsAsync(dump: false, PlayerId, cancellationToken);
         while (true)

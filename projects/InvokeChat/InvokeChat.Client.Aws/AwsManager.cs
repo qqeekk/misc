@@ -9,21 +9,34 @@ namespace InvokeChat.Client.Aws;
 
 public class AwsManager
 {
-    public string FleetId { get; set; } = "fleet-123";
+    public string AliasId { get; }
+
+    public string FleetId { get; }
 
     private readonly Dictionary<string, GameSession> gameSessions = new();
     private readonly Dictionary<string, PlayerSession> playerSessions = new();
     private readonly AmazonGameLiftClient gameLiftClient;
 
-    public AwsManager()
+    public AwsManager(string accessKey, string secretKey, string aliasId)
     {
         // All available service URLS:
         // - https://docs.aws.amazon.com/general/latest/gr/rande.html
         // - https://docs.aws.amazon.com/general/latest/gr/gamelift.html
         var config = new AmazonGameLiftConfig
         {
-            ServiceURL = FleetId.EndsWith("123") ? "http://localhost:9080" : @"https://gamelift.us-west-2.amazonaws.com"
+            ServiceURL = @"https://gamelift.us-west-2.amazonaws.com"
         };
+        AliasId = aliasId;
+        gameLiftClient = new AmazonGameLiftClient(new BasicAWSCredentials(accessKey, secretKey), config);
+    }
+
+    public AwsManager()
+    {
+        var config = new AmazonGameLiftConfig
+        {
+            ServiceURL = "http://localhost:9080"
+        };
+        FleetId = "fleet-123";
         gameLiftClient = new AmazonGameLiftClient(new AnonymousAWSCredentials(), config);
     }
 
@@ -31,6 +44,7 @@ public class AwsManager
     {
         var response = await gameLiftClient.CreateGameSessionAsync(new CreateGameSessionRequest
         {
+            AliasId = AliasId,
             FleetId = FleetId,
             Name = "TestIt " + DateTime.Now.Second,
             GameSessionData = DateTime.Now.ToString(CultureInfo.InvariantCulture),
@@ -71,6 +85,7 @@ public class AwsManager
     {
         var response = await gameLiftClient.DescribeGameSessionsAsync(new DescribeGameSessionsRequest
         {
+            AliasId = AliasId,
             FleetId = FleetId
         }, cancellationToken);
         ValidateWebResponse(response);
@@ -104,8 +119,9 @@ public class AwsManager
         ValidateWebResponse(response);
         var sb = new StringBuilder();
         DumpPlayerSession(response.PlayerSession, sb);
-        playerSessions[response.PlayerSession.PlayerSessionId] = response.PlayerSession;
         Console.WriteLine(sb);
+
+        playerSessions[response.PlayerSession.PlayerSessionId] = response.PlayerSession;
     }
 
     public async Task DescribePlayerSessionsAsync(bool dump, string playerId, CancellationToken cancellationToken)
