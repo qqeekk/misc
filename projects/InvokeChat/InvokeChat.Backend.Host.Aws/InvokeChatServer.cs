@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Aws.GameLift.Server;
@@ -98,6 +99,7 @@ public sealed class InvokeChatServer
     private void HandleCommand(ChatClient client, TcpClient tcpClient, ChatCommand command)
     {
         command = command.Convert();
+        // ConnectChatCommand
         if (command.Command == ChatCommand.CommandType.Connect)
         {
             var connectCommand = (ConnectChatCommand)command;
@@ -107,8 +109,9 @@ public sealed class InvokeChatServer
             Console.WriteLine($"{client} connected with id {client.PlayerSessionId}.");
             var response = GameLiftServerAPI.AcceptPlayerSession(client.PlayerSessionId);
             AwsUtils.ProcessResponse(response);
-            Broadcast(client, connectCommand);
+            Broadcast(connectCommand);
         }
+        // DisconnectChatCommand
         else if (command.Command == ChatCommand.CommandType.Disconnect)
         {
             lock (@lock)
@@ -120,13 +123,26 @@ public sealed class InvokeChatServer
             Console.WriteLine($"{client} disconnected.");
             var response = GameLiftServerAPI.RemovePlayerSession(client.PlayerSessionId);
             AwsUtils.ProcessResponse(response);
-            Broadcast(client, command);
+            Broadcast(command);
         }
+        // MessageChatCommand
         else if (command.Command == ChatCommand.CommandType.SendMessage)
         {
             var chatCommand = (MessageChatCommand)command;
             Console.WriteLine($"Client '{chatCommand.ClientName}' sent message '{chatCommand.Message}'.");
-            Broadcast(client, chatCommand);
+            if (chatCommand.Message.StartsWith(@"\v"))
+            {
+                Send(client, new MessageChatCommand("<server>", GetVersion()));
+            }
+            else
+            {
+                Broadcast(chatCommand);
+            }
+        }
+        // VersionChatCommand
+        else if (command.Command == ChatCommand.CommandType.Version)
+        {
+            Broadcast(new VersionChatCommand(GetVersion()));
         }
         else
         {
@@ -134,17 +150,27 @@ public sealed class InvokeChatServer
         }
     }
 
-    private void Broadcast(ChatClient chatClient, ChatCommand command)
+    private static string GetVersion()
+        => typeof(Program).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? string.Empty;
+
+    private void Broadcast(ChatCommand command)
+    {
+        foreach (var client in clients.Keys)
+        {
+            Send(client, command);
+        }
+    }
+
+    private void Send(ChatClient chatClient, ChatCommand command)
     {
         byte[] buffer = Encoding.Unicode.GetBytes(JsonSerializer.Serialize(command));
 
         lock (@lock)
         {
-            foreach (var tcpClient in clients.Values)
-            {
-                var stream = tcpClient.GetStream();
-                stream.Write(buffer, 0, buffer.Length);
-            }
+            var tcpClient = clients[chatClient];
+            var stream = tcpClient.GetStream();
+            stream.Write(buffer, 0, buffer.Length);
         }
     }
 }

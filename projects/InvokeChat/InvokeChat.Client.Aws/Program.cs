@@ -60,7 +60,7 @@ public class Program
             var cmd = args[0];
             try
             {
-                if (cmd == "ns")
+                if (cmd == "cs")
                 {
                     await awsManager.CreateSessionAsync(cancellationToken);
                 }
@@ -95,13 +95,12 @@ public class Program
                 }
                 else if (cmd == "h")
                 {
-                    Console.WriteLine("ns=new session, ds=describe session");
-                    Console.WriteLine("cps=create player session");
+                    Console.WriteLine("cs=create game session, ds=describe session");
+                    Console.WriteLine("cps=create player session, c=connect");
                     Console.WriteLine("st=servers state");
-                    Console.WriteLine("c=connect");
                     Console.WriteLine("h=help, q=quit");
                 }
-                else if (cmd ==  "q")
+                else if (cmd == "q")
                 {
                     return 0;
                 }

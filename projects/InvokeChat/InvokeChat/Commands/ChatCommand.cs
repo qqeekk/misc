@@ -8,7 +8,8 @@ public class ChatCommand
     {
         Connect,
         Disconnect,
-        SendMessage
+        SendMessage,
+        Version
     }
 
     [JsonInclude]

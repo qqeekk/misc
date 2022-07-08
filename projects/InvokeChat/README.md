@@ -30,7 +30,7 @@ The server port range is 12000-40000 TCP.
 
 **Upload build**
 
-- `aws gamelift upload-build --name invokechat --build-version "0.1.0" --build-root ./build --operating-system AMAZON_LINUX_2 --region us-west-2`
+- `aws gamelift upload-build --name invokechat --build-version "0.1.3" --build-root ./build --operating-system AMAZON_LINUX_2 --region us-west-2`
 - `aws gamelift update-build --build-id build-X`
 
 **Create fleet**
@@ -39,7 +39,7 @@ The server port range is 12000-40000 TCP.
 aws gamelift create-fleet --name InvokeChat \
   --build-id build-32dc72d5-a939-491b-987f-a2b11ca46eca \
   --fleet-type SPOT \
-  --ec2-instance-type c4.large \
+  --ec2-instance-type m3.medium \
   --ec2-inbound-permissions="FromPort=12000,ToPort=40000,IpRange=0.0.0.0/0,Protocol=TCP" \
   --locations Location=us-west-2 \
   --runtime-configuration ServerProcesses="[{LaunchPath=/local/game/chathostaws,ConcurrentExecutions=3}]"

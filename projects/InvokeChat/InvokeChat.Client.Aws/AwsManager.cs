@@ -9,9 +9,9 @@ namespace InvokeChat.Client.Aws;
 
 public class AwsManager
 {
-    public string AliasId { get; }
+    public string? AliasId { get; }
 
-    public string FleetId { get; }
+    public string? FleetId { get; }
 
     private readonly Dictionary<string, GameSession> gameSessions = new();
     private readonly Dictionary<string, PlayerSession> playerSessions = new();
