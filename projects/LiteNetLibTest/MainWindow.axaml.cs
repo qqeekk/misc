@@ -5,6 +5,8 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using LiteNetLibTest.Media;
+using LiteNetLibTest.Ogg;
 
 namespace LiteNetLibTest;
 
@@ -27,7 +29,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         NetDebug.Logger = new ConsoleLogger();
-        netPacketProcessor.RegisterNestedType(() => new GameObject());
 
         this.Closed += OnClosed;
         this.AddHandler(PointerMovedEvent, (sender, args) =>
@@ -67,8 +68,17 @@ public partial class MainWindow : Window
         };
 
         var writer = new NetDataWriter();
-        var objects = this.FindControl<Canvas>("Scene").Children
-            .Cast<Control>().Where(o => o != null).ToArray();
+
+        var scence = this.FindControl<Canvas>("Scene");
+        var objects = scence.Children.Cast<Control>().Where(o => o != null).ToArray();
+
+        var gameRecorder = new GameRecorder(objects);
+        var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
+        var queue = new OggDataQueue(microphone, gameRecorder);
+
+        // Start recording.
+        microphone.Start();
+        gameRecorder.Start();
 
         // Start timer.
         bool inProcess = false;
@@ -79,18 +89,13 @@ public partial class MainWindow : Window
                 return;
             }
             inProcess = true;
-            writer.Reset();
 
-            for (int i = 0; i < objects.Length; i++)
-            {
-                var go = new GameObject
-                {
-                    Id = objects[i].Name,
-                    Left = objects[i].GetValue(Canvas.LeftProperty),
-                    Top = objects[i].GetValue(Canvas.TopProperty),
-                };
-                netPacketProcessor.WriteNetSerializable(writer, go);
-            }
+            gameRecorder.PollState();
+            var data = queue.Pop();
+
+            writer.Reset();
+            writer.PutBytesWithLength(data);
+
             server.SendToAll(writer, DeliveryMethod.Unreliable);
             server.PollEvents();
             inProcess = false;

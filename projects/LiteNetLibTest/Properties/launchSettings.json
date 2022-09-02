@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LiteNetLibTest": {
+      "commandName": "Project",
+      "commandLineArgs": "--server"
+    }
+  }
+}
