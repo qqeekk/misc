@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 using Avalonia.Controls;
 using LiteNetLib.Utils;
 using LiteNetLibTest.Ogg;
@@ -13,26 +14,17 @@ namespace LiteNetLibTest.Media
 {
     internal class GameRecorder : IMediaSource
     {
-        public const int MetadataStreamSerialNo = 1;
+        public const int MetadataStreamSerialNo = 33;
         private const int SampleRate = 44100;
         
         private readonly Control[] objects;
+        private int packetNumber = 0;
 
         public event EventHandler<OggStream> Recorded = delegate { };
 
         public GameRecorder(Control[] objects)
         {
             this.objects = objects;
-        }
-
-        public void Start()
-        {
-            var data = VorbisInfo.InitVariableBitRate(MetadataStreamSerialNo, SampleRate, baseQuality: 1f);
-            var dataStream = new OggStream(MetadataStreamSerialNo);
-            var dataHeader = HeaderPacketBuilder.BuildInfoPacket(data);
-            dataStream.PacketIn(dataHeader);
-
-            Recorded.Invoke(this, dataStream);
         }
 
         public void PollState()
@@ -59,13 +51,23 @@ namespace LiteNetLibTest.Media
             }
 
             var dataStream = new OggStream(MetadataStreamSerialNo);
-            var packet = new OggPacket(stream.ToArray(), true, 0, 0);
+            var packet = new OggPacket(stream.ToArray(), false, 0, Interlocked.Increment(ref this.packetNumber));
             dataStream.PacketIn(packet);
 
             Recorded.Invoke(this, dataStream);
         }
 
-        public void AddToSkeleton(OggStream skeletonStream)
+        public OggStream GetLogicalStreamHeader()
+        {
+            var data = VorbisInfo.InitVariableBitRate(MetadataStreamSerialNo, SampleRate, baseQuality: 1f);
+            var dataStream = new OggStream(MetadataStreamSerialNo);
+            var dataHeader = HeaderPacketBuilder.BuildInfoPacket(data);
+            dataStream.PacketIn(dataHeader);
+
+            return dataStream;
+        }
+
+        public OggPacket GetSkeletonFisbone()
         {
             // Skeleton Fisbone(metadata)
             var metadataSkeletonFisbone = OggSkeletonBuilder.BuildFisbone(
@@ -77,8 +79,7 @@ namespace LiteNetLibTest.Media
                 preroll: 3,
                 granShift: 0,
                 content: "Content-Type: text/vorbis\r\nRole: text/main\r\n");
-            var metadataFisbonePacket = new OggPacket(metadataSkeletonFisbone, false, 0, 2);
-            skeletonStream.PacketIn(metadataFisbonePacket);
+            return new OggPacket(metadataSkeletonFisbone, false, 0, 2);
         }
     }
 }

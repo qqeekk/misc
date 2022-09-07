@@ -1,52 +1,68 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Remote.Protocol.Viewport;
 using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Ogg;
 
-internal class PcmAudioStreamReader : IAsyncDisposable
+internal class PcmAudioStreamReader
 {
     private const int WriteBufferSize = 512;
-
+    private readonly static object _obj = new();
+    
+    private readonly float[] samples;
     private readonly int serialNo;
-    private readonly BinaryReader streamReader;
     private readonly PcmSample sample;
     private readonly VorbisInfo header;
+    private readonly ProcessingState processingState;
+    private volatile int packetNo = -1;
 
-    public PcmAudioStreamReader(BinaryReader streamReader, int serialNo, int rate, PcmSample sample)
+    public PcmAudioStreamReader(byte[] bytes, int serialNo, int rate, PcmSample sample)
     {
-        this.streamReader = streamReader;
         this.serialNo = serialNo;
         this.sample = sample;
+        samples = GetFloats(bytes);
         header = VorbisInfo.InitVariableBitRate(channels: 1, sampleRate: rate, baseQuality: 0.5f);
+        processingState = ProcessingState.Create(header);
     }
 
     public OggStream NextInterval(int bufferSize)
     {
-        // Convert to floats.
-        var samples = GetFloats(streamReader.ReadBytes(bufferSize));
-
         // Convert to ogg packets.
-        var audioStream = new OggStream(serialNo);
-        var audioProcessingState = ProcessingState.Create(header);
-        for (int readIndex = 0; readIndex <= samples.Length; readIndex += WriteBufferSize)
-        {
-            if (readIndex == samples.Length)
-            {
-                audioProcessingState.WriteEndOfStream();
-            }
-            else
-            {
-                audioProcessingState.WriteData(new[] { samples }, WriteBufferSize, readIndex);
-            }
 
-            while (audioProcessingState.PacketOut(out OggPacket packet))
+        lock (_obj)
+        {
+            var packetNo = ++this.packetNo;
+
+            using var outputStream = new MemoryStream();
+            var audioStream = new OggStream(serialNo);
+            
+            var from = packetNo * WriteBufferSize;
+            var to = from + bufferSize;
+            
+            for (; from < to; from += WriteBufferSize)
             {
-                audioStream.PacketIn(packet);
+                if (from == samples.Length)
+                {
+                    processingState.WriteEndOfStream();
+                }
+                else
+                {
+                    processingState.WriteData(
+                        data: new[] { samples },
+                        length: WriteBufferSize,
+                        read_offset: from);
+                }
+
+                while (!audioStream.Finished && processingState.PacketOut(out OggPacket packet))
+                {
+                    audioStream.PacketIn(packet);
+                }
             }
+            return audioStream;
         }
-        return audioStream;
     }
 
     public OggStream InitializeStream()
@@ -57,7 +73,9 @@ internal class PcmAudioStreamReader : IAsyncDisposable
         audioStream.PacketIn(audioHeader);
 
         // Comments
-        var commentsPacket = HeaderPacketBuilder.BuildCommentsPacket(new Comments());
+        var comments = new Comments();
+        comments.AddTag("ARTIST", "TEST");
+        var commentsPacket = HeaderPacketBuilder.BuildCommentsPacket(comments);
         audioStream.PacketIn(commentsPacket);
 
         // Books
@@ -90,12 +108,6 @@ internal class PcmAudioStreamReader : IAsyncDisposable
 
         static float ByteToSample(short pcmValue) => pcmValue / 128f;
         static float ShortToSample(short pcmValue) => pcmValue / 32768f;
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        streamReader.Dispose();
-        return ValueTask.CompletedTask;
     }
 }
 

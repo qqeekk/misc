@@ -9,7 +9,7 @@ namespace LiteNetLibTest.Media;
 
 internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 {
-	public const int FrequencyMilliseconds = 200;
+	public const int FrequencyMilliseconds = 50;
     public const int VorbisStreamSerialNo = 999;
 
     private readonly string audioPath;
@@ -17,7 +17,21 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 	private Timer? timer;
 	private PcmAudioStreamReader? audioStreamReader;
 
-	public event EventHandler<OggStream> Recorded = delegate { };
+	private PcmAudioStreamReader AudioStreamReader
+	{
+		get
+		{
+			if (audioStreamReader == null)
+			{
+                var pcmBytes = File.ReadAllBytes(audioPath);
+                this.audioStreamReader = new PcmAudioStreamReader(pcmBytes, VorbisStreamSerialNo, sampleRate, sample: PcmSample.SixteenBit);
+			}
+            return audioStreamReader;
+        }
+    }
+
+
+    public event EventHandler<OggStream> Recorded = delegate { };
 
 	public MicrophoneSimulator(string audioPath, int sampleRate)
 	{
@@ -27,16 +41,11 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 
 	public void Start()
 	{
-		var fileStream = new FileStream(audioPath, FileMode.Open, FileAccess.Read);
-        var binaryReader = new BinaryReader(fileStream, System.Text.Encoding.UTF8, leaveOpen: false);
-		this.audioStreamReader = new PcmAudioStreamReader(binaryReader, VorbisStreamSerialNo, sampleRate, sample: PcmSample.SixteenBit);
-
-		Recorded.Invoke(this, audioStreamReader.InitializeStream());
 		this.timer = new Timer(callback: Routine, state: null, dueTime: FrequencyMilliseconds, period: FrequencyMilliseconds);
 
 		void Routine(object? state)
 		{
-			Recorded.Invoke(this, audioStreamReader.NextInterval(bufferSize: 512));
+			Recorded.Invoke(this, AudioStreamReader.NextInterval(bufferSize: 512));
 		}
     }
 
@@ -46,14 +55,14 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 		{
 			await timer.DisposeAsync();
 		}
-
-		if (audioStreamReader != null)
-		{
-			await audioStreamReader.DisposeAsync();
-		}
 	}
 
-	public void AddToSkeleton(OggStream skeletonStream)
+	public OggStream GetLogicalStreamHeader()
+	{
+        return AudioStreamReader.InitializeStream();
+    }
+
+    public OggPacket GetSkeletonFisbone()
 	{
         // Skeleton Fisbone (audio)
         var vorbisSkeletonFisbone = OggSkeletonBuilder.BuildFisbone(
@@ -66,7 +75,6 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
             granShift: 0,
             content: "Content-Type: audio/vorbis\r\nRole: audio/main\r\n");
 
-        var vorbisFisbonePacket = new OggPacket(vorbisSkeletonFisbone, false, 0, 1);
-        skeletonStream.PacketIn(vorbisFisbonePacket);
+        return new OggPacket(vorbisSkeletonFisbone, false, 0, 1);
     }
 }

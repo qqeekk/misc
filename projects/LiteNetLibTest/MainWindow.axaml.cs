@@ -1,12 +1,20 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Threading;
+using HarfBuzzSharp;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using LiteNetLibTest.Media;
 using LiteNetLibTest.Ogg;
+using Microsoft.VisualBasic.FileIO;
+using NVorbis.Contracts;
+using OggVorbisEncoder;
 
 namespace LiteNetLibTest;
 
@@ -14,6 +22,7 @@ public partial class MainWindow : Window
 {
     private const int Port = 12045;
     private const string ConnectionKey = "Test";
+    private readonly static object lo = new();
 
     private readonly EventBasedNetListener listener = new();
     private readonly NetPacketProcessor netPacketProcessor = new();
@@ -23,6 +32,7 @@ public partial class MainWindow : Window
 
     private Control? controlUnderMoving;
     private Point controlStartMousePosition;
+    private FileStream stream;
     private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(50);
 
     public MainWindow()
@@ -48,6 +58,7 @@ public partial class MainWindow : Window
         timer?.Stop();
         server?.Stop(true);
         client?.Stop(true);
+        stream?.Dispose();
     }
 
     public void InitializeAsServer()
@@ -76,9 +87,29 @@ public partial class MainWindow : Window
         var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
         var queue = new OggDataQueue(microphone, gameRecorder);
 
+        //this.stream = new FileStream("D://target.ogg", FileMode.Append, FileAccess.Write, FileShare.Write);
+        //{
+        //    // Skeleton Fishead
+        //    var skeletonStream = new OggStream(1);
+        //    var skeletonFishead = OggSkeletonBuilder.BuildFishead(0, 0);
+        //    var skeletonFisheadPacket = new OggPacket(skeletonFishead, false, 0, 0);
+
+        //    skeletonStream.PacketIn(skeletonFisheadPacket);
+        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+
+        //    // Microphone.
+        //    skeletonStream.PacketIn(microphone.GetSkeletonFisbone());
+        //    OggDataQueue.FlushPages(stream, microphone.GetLogicalStreamHeader(), force: true);
+        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+
+        //    // Game recorder.
+        //    skeletonStream.PacketIn(gameRecorder.GetSkeletonFisbone());
+        //    OggDataQueue.FlushPages(stream, gameRecorder.GetLogicalStreamHeader(), force: true);
+        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+        //}
+
         // Start recording.
         microphone.Start();
-        gameRecorder.Start();
 
         // Start timer.
         bool inProcess = false;
@@ -90,13 +121,17 @@ public partial class MainWindow : Window
             }
             inProcess = true;
 
-            gameRecorder.PollState();
-            var data = queue.Pop();
+            lock (lo)
+            {
+                gameRecorder.PollState();
+                var data = queue.Pop();
+                //stream.Write(data);
+                
+                writer.Reset();
+                writer.PutBytesWithLength(data);
+            }
 
-            writer.Reset();
-            writer.PutBytesWithLength(data);
-
-            server.SendToAll(writer, DeliveryMethod.Unreliable);
+            server.SendToAll(writer, DeliveryMethod.ReliableOrdered);
             server.PollEvents();
             inProcess = false;
         });
@@ -132,6 +167,39 @@ public partial class MainWindow : Window
         var objects = this.FindControl<Canvas>("Scene").Children
             .Cast<Control>().Where(o => o != null).ToArray();
 
+        var gameRecorder = new GameRecorder(objects);
+        var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
+        var queue = new OggDataQueue(microphone, gameRecorder);
+
+        // =========================================================
+        // HEADER
+        // =========================================================
+        // Vorbis streams begin with three headers; the initial header (with
+        // most of the codec setup parameters) which is mandated by the Ogg
+        // bitstream spec.  The second header holds any comment fields.  The
+        // third header holds the bitstream codebook.
+
+        this.stream = new FileStream("D://target.ogg", FileMode.Append, FileAccess.Write, FileShare.Write);
+        {
+            // Skeleton Fishead
+            var skeletonStream = new OggStream(1);
+            var skeletonFishead = OggSkeletonBuilder.BuildFishead(0, 0);
+            var skeletonFisheadPacket = new OggPacket(skeletonFishead, false, 0, 0);
+
+            skeletonStream.PacketIn(skeletonFisheadPacket);
+            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+            
+            // Microphone.
+            skeletonStream.PacketIn(microphone.GetSkeletonFisbone());
+            OggDataQueue.FlushPages(stream, microphone.GetLogicalStreamHeader(), force: true);
+            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+            
+            // Game recorder.
+            skeletonStream.PacketIn(gameRecorder.GetSkeletonFisbone());
+            OggDataQueue.FlushPages(stream, gameRecorder.GetLogicalStreamHeader(), force: true);
+            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
+        }
+
         // Events.
         bool inProcess = false;
         netPacketProcessor.SubscribeReusable<GameObject, NetPeer>((go, netPeer) =>
@@ -146,7 +214,18 @@ public partial class MainWindow : Window
         });
         listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
         {
-            netPacketProcessor.ReadAllPackets(dataReader, fromPeer);
+            try
+            {
+                lock (lo)
+                {
+                    stream.Write(dataReader.GetBytesWithLength());
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                throw;
+            }
         };
         listener.ConnectionRequestEvent += request =>
         {
