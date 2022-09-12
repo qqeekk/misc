@@ -2,30 +2,26 @@
 using System.IO;
 using LiteNetLibTest.Media;
 using OggVorbisEncoder;
+using SkiaSharp;
 
 namespace LiteNetLibTest.Ogg;
 
-internal class OggDataQueue
+internal class OggDataRecorder
 {
-    private readonly ConcurrentQueue<OggStream> packets = new();
+    private readonly ReadWriteBuffer<OggStream> buffer = new();
 
-    public OggDataQueue(params IMediaSource[] sources)
+    public OggDataRecorder(params IMediaSource[] sources)
     {
         foreach (var source in sources)
         {
-            source.Recorded += (e, stream) => packets.Enqueue(stream);
+            source.Recorded += (e, stream) => buffer.Enqueue(stream);
         }
     }
 
     public byte[] Pop()
     {
         using var stream = new MemoryStream();
-
-        while (packets.TryDequeue(out var packet))
-        {
-            FlushPages(stream, packet, force: true);
-        }
-
+        buffer.Poll(packet => FlushPages(stream, packet, force: true));
         return stream.ToArray();
     }
 

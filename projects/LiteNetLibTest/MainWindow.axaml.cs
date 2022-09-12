@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -32,7 +33,7 @@ public partial class MainWindow : Window
 
     private Control? controlUnderMoving;
     private Point controlStartMousePosition;
-    private FileStream stream;
+    private MemoryStream stream;
     private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(50);
 
     public MainWindow()
@@ -85,28 +86,7 @@ public partial class MainWindow : Window
 
         var gameRecorder = new GameRecorder(objects);
         var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
-        var queue = new OggDataQueue(microphone, gameRecorder);
-
-        //this.stream = new FileStream("D://target.ogg", FileMode.Append, FileAccess.Write, FileShare.Write);
-        //{
-        //    // Skeleton Fishead
-        //    var skeletonStream = new OggStream(1);
-        //    var skeletonFishead = OggSkeletonBuilder.BuildFishead(0, 0);
-        //    var skeletonFisheadPacket = new OggPacket(skeletonFishead, false, 0, 0);
-
-        //    skeletonStream.PacketIn(skeletonFisheadPacket);
-        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-
-        //    // Microphone.
-        //    skeletonStream.PacketIn(microphone.GetSkeletonFisbone());
-        //    OggDataQueue.FlushPages(stream, microphone.GetLogicalStreamHeader(), force: true);
-        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-
-        //    // Game recorder.
-        //    skeletonStream.PacketIn(gameRecorder.GetSkeletonFisbone());
-        //    OggDataQueue.FlushPages(stream, gameRecorder.GetLogicalStreamHeader(), force: true);
-        //    OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-        //}
+        var queue = new OggDataRecorder(microphone, gameRecorder);
 
         // Start recording.
         microphone.Start();
@@ -167,41 +147,12 @@ public partial class MainWindow : Window
         var objects = this.FindControl<Canvas>("Scene").Children
             .Cast<Control>().Where(o => o != null).ToArray();
 
-        var gameRecorder = new GameRecorder(objects);
         var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
-        var queue = new OggDataQueue(microphone, gameRecorder);
-
-        // =========================================================
-        // HEADER
-        // =========================================================
-        // Vorbis streams begin with three headers; the initial header (with
-        // most of the codec setup parameters) which is mandated by the Ogg
-        // bitstream spec.  The second header holds any comment fields.  The
-        // third header holds the bitstream codebook.
-
-        this.stream = new FileStream("D://target.ogg", FileMode.Append, FileAccess.Write, FileShare.Write);
-        {
-            // Skeleton Fishead
-            var skeletonStream = new OggStream(1);
-            var skeletonFishead = OggSkeletonBuilder.BuildFishead(0, 0);
-            var skeletonFisheadPacket = new OggPacket(skeletonFishead, false, 0, 0);
-
-            skeletonStream.PacketIn(skeletonFisheadPacket);
-            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-            
-            // Microphone.
-            skeletonStream.PacketIn(microphone.GetSkeletonFisbone());
-            OggDataQueue.FlushPages(stream, microphone.GetLogicalStreamHeader(), force: true);
-            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-            
-            // Game recorder.
-            skeletonStream.PacketIn(gameRecorder.GetSkeletonFisbone());
-            OggDataQueue.FlushPages(stream, gameRecorder.GetLogicalStreamHeader(), force: true);
-            OggDataQueue.FlushPages(stream, skeletonStream, force: true);
-        }
+        var player = new OggAudioPlayer(microphone);
 
         // Events.
         bool inProcess = false;
+        ThreadPool.QueueUserWorkItem(_ => player.PlayAsync());
         netPacketProcessor.SubscribeReusable<GameObject, NetPeer>((go, netPeer) =>
         {
             var obj = objects.FirstOrDefault(o => o.Name == go.Id);
@@ -214,18 +165,8 @@ public partial class MainWindow : Window
         });
         listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
         {
-            try
-            {
-                lock (lo)
-                {
-                    stream.Write(dataReader.GetBytesWithLength());
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-                throw;
-            }
+            var bytes = dataReader.GetBytesWithLength();
+            player.Enqueue(bytes);
         };
         listener.ConnectionRequestEvent += request =>
         {
@@ -249,7 +190,7 @@ public partial class MainWindow : Window
             inProcess = false;
         });
         timer.Start();
-
+        
         Title = "Client";
     }
 }

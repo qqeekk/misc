@@ -9,7 +9,7 @@ namespace LiteNetLibTest.Media;
 
 internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 {
-	public const int FrequencyMilliseconds = 50;
+	public const int FrequencyMilliseconds = 20;
     public const int VorbisStreamSerialNo = 999;
 
     private readonly string audioPath;
@@ -45,7 +45,7 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 
 		void Routine(object? state)
 		{
-			Recorded.Invoke(this, AudioStreamReader.NextInterval(bufferSize: 512));
+			Recorded.Invoke(this, AudioStreamReader.NextInterval(packets: 1));
 		}
     }
 

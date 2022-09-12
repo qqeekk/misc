@@ -28,7 +28,7 @@ internal class PcmAudioStreamReader
         processingState = ProcessingState.Create(header);
     }
 
-    public OggStream NextInterval(int bufferSize)
+    public OggStream NextInterval(int packets)
     {
         // Convert to ogg packets.
 
@@ -39,12 +39,10 @@ internal class PcmAudioStreamReader
             using var outputStream = new MemoryStream();
             var audioStream = new OggStream(serialNo);
             
-            var from = packetNo * WriteBufferSize;
-            var to = from + bufferSize;
-            
-            for (; from < to; from += WriteBufferSize)
+            for (var from = 0; from < packets; from++)
             {
-                if (from == samples.Length)
+                var offset = (packetNo + from) * WriteBufferSize;
+                if (offset == samples.Length)
                 {
                     processingState.WriteEndOfStream();
                 }
@@ -53,7 +51,7 @@ internal class PcmAudioStreamReader
                     processingState.WriteData(
                         data: new[] { samples },
                         length: WriteBufferSize,
-                        read_offset: from);
+                        read_offset: offset);
                 }
 
                 while (!audioStream.Finished && processingState.PacketOut(out OggPacket packet))
