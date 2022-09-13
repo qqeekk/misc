@@ -9,9 +9,9 @@ namespace LiteNetLibTest.Ogg;
 
 internal class PcmAudioStreamReader
 {
-    private const int WriteBufferSize = 512;
-    private readonly static object _obj = new();
+    private const int WriteBufferSize = 8192;
     
+    private readonly object _obj = new();
     private readonly float[] samples;
     private readonly int serialNo;
     private readonly PcmSample sample;
@@ -30,8 +30,8 @@ internal class PcmAudioStreamReader
 
     public OggStream NextInterval(int packets)
     {
-        // Convert to ogg packets.
-
+        // TODO: order is not guaranteed. see "lock convoy".
+        // This can lead to wrong granule position in the final queue.
         lock (_obj)
         {
             var packetNo = ++this.packetNo;

@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private Control? controlUnderMoving;
     private Point controlStartMousePosition;
     private MemoryStream stream;
-    private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(50);
+    private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(150);
 
     public MainWindow()
     {

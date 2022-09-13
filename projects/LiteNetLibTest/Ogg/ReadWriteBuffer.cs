@@ -15,6 +15,7 @@ internal class ReadWriteBuffer<TPacket>
         while (packets.TryDequeue(out var packet))
         {
             await callback(packet);
+            (packet as IDisposable)?.Dispose();
         }
     }
 

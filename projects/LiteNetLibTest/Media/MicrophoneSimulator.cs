@@ -9,7 +9,7 @@ namespace LiteNetLibTest.Media;
 
 internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 {
-	public const int FrequencyMilliseconds = 20;
+	public const int FrequencyMilliseconds = 160;
     public const int VorbisStreamSerialNo = 999;
 
     private readonly string audioPath;

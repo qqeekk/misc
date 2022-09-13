@@ -1,15 +1,19 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using LiteNetLibTest.Ogg;
+using NAudio.CoreAudioApi;
+using NAudio.Vorbis;
 using NAudio.Wave;
 
 namespace LiteNetLibTest.Media;
 
 public class OggAudioPlayer
 {
-    private byte[] headerBytes;
-    private ReadWriteBuffer<IWaveProvider> buffer = new();
+    private readonly byte[] headerBytes;
+    private readonly ReadWriteBuffer<VorbisWaveReader> buffer = new();
+
     private bool stopped;
 
     public OggAudioPlayer(IMediaSource microphone)
@@ -23,7 +27,7 @@ public class OggAudioPlayer
     {
         // Copy to stream.
         var stream = new MemoryStream(headerBytes.Concat(buffer).ToArray());
-        var vorbisStream = new NAudio.Vorbis.VorbisWaveReader(stream, closeOnDispose: true);
+        var vorbisStream = new VorbisWaveReader(stream, closeOnDispose: true);
         vorbisStream.NextStreamIndex = MicrophoneSimulator.VorbisStreamSerialNo;
 
         this.buffer.Enqueue(vorbisStream);
@@ -33,14 +37,24 @@ public class OggAudioPlayer
     {
         while (!stopped)
         {
-            await this.buffer.PollAsync(stream =>
+            await this.buffer.PollAsync(vorbisStream =>
             {
                 var completion = new TaskCompletionSource();
-                var waveOut = new NAudio.Wave.WasapiOut();
-                waveOut.Init(stream);
-                waveOut.PlaybackStopped += (s, e) => completion.TrySetResult();
+                void OnPlaybackStopped(object? sender, StoppedEventArgs e)
+                {
+                    if (e.Exception != null)
+                    {
+                        Debug.WriteLine(e.Exception.Message);
+                    }
 
-                waveOut.Play();
+                    completion.TrySetResult();
+                }
+
+                var speaker = new WasapiOut(AudioClientShareMode.Shared, latency: 0);
+                speaker.Init(vorbisStream);
+                speaker.PlaybackStopped += OnPlaybackStopped;
+                speaker.Play();
+
                 return completion.Task;
             });
         }
