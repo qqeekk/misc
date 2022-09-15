@@ -1,15 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Avalonia.Remote.Protocol.Viewport;
 using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Ogg;
 
 internal class PcmAudioStreamReader
 {
-    private const int WriteBufferSize = 8192;
+    private const int WriteBufferSize = 1 << 14;
     
     private readonly object _obj = new();
     private readonly float[] samples;

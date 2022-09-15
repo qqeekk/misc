@@ -7,16 +7,15 @@ using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Media;
 
-internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
+public class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 {
-	public const int FrequencyMilliseconds = 160;
+	public const int FrequencyMilliseconds = 200;
     public const int VorbisStreamSerialNo = 999;
 
     private readonly string audioPath;
-	private readonly int sampleRate;
 	private Timer? timer;
 	private PcmAudioStreamReader? audioStreamReader;
-
+	
 	private PcmAudioStreamReader AudioStreamReader
 	{
 		get
@@ -24,19 +23,20 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
 			if (audioStreamReader == null)
 			{
                 var pcmBytes = File.ReadAllBytes(audioPath);
-                this.audioStreamReader = new PcmAudioStreamReader(pcmBytes, VorbisStreamSerialNo, sampleRate, sample: PcmSample.SixteenBit);
+                this.audioStreamReader = new PcmAudioStreamReader(pcmBytes, VorbisStreamSerialNo, SampleRate, sample: PcmSample.SixteenBit);
 			}
             return audioStreamReader;
         }
     }
 
+	public int SampleRate { get; }
 
     public event EventHandler<OggStream> Recorded = delegate { };
 
 	public MicrophoneSimulator(string audioPath, int sampleRate)
 	{
+		this.SampleRate = sampleRate;
 		this.audioPath = audioPath;
-		this.sampleRate = sampleRate;
 	}
 
 	public void Start()
@@ -68,7 +68,7 @@ internal class MicrophoneSimulator : IMediaSource, IAsyncDisposable
         var vorbisSkeletonFisbone = OggSkeletonBuilder.BuildFisbone(
             serialNumber: VorbisStreamSerialNo,
             headerPackets: 1,
-            granuleNumerator: (ulong)sampleRate,
+            granuleNumerator: (ulong)SampleRate,
             granuleDenumerator: 1,
             baseGranule: 0,
             preroll: 3,

@@ -1,21 +1,14 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Threading;
-using HarfBuzzSharp;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using LiteNetLibTest.Media;
 using LiteNetLibTest.Ogg;
-using Microsoft.VisualBasic.FileIO;
-using NVorbis.Contracts;
-using OggVorbisEncoder;
 
 namespace LiteNetLibTest;
 
@@ -153,6 +146,7 @@ public partial class MainWindow : Window
         // Events.
         bool inProcess = false;
         ThreadPool.QueueUserWorkItem(_ => player.PlayAsync());
+        //ThreadPool.QueueUserWorkItem(_ => player.PlayStatic("D:\\target.ogg"));
         netPacketProcessor.SubscribeReusable<GameObject, NetPeer>((go, netPeer) =>
         {
             var obj = objects.FirstOrDefault(o => o.Name == go.Id);

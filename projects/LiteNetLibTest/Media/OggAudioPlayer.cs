@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using LiteNetLibTest.Ogg;
-using NAudio.CoreAudioApi;
 using NAudio.Vorbis;
 using NAudio.Wave;
 
@@ -12,12 +12,22 @@ namespace LiteNetLibTest.Media;
 public class OggAudioPlayer
 {
     private readonly byte[] headerBytes;
-    private readonly ReadWriteBuffer<VorbisWaveReader> buffer = new();
+    private readonly byte[] buffer = new byte[1 << 16];
+    private readonly BufferedWaveProvider bufferedWaveProvider;
+    private readonly IWavePlayer player;
 
-    private bool stopped;
-
-    public OggAudioPlayer(IMediaSource microphone)
+    public OggAudioPlayer(MicrophoneSimulator microphone)
     {
+        // Initialize player.
+        bufferedWaveProvider = new BufferedWaveProvider(
+            waveFormat: WaveFormat.CreateIeeeFloatWaveFormat(microphone.SampleRate, channels: 1))
+        {
+            BufferDuration = TimeSpan.FromSeconds(60),
+        };
+
+        player = new WaveOutEvent();
+        player.Init(bufferedWaveProvider);
+
         var stream = new MemoryStream();
         OggDataRecorder.FlushPages(stream, microphone.GetLogicalStreamHeader(), force: true);
         headerBytes = stream.ToArray();
@@ -25,43 +35,57 @@ public class OggAudioPlayer
 
     public void Enqueue(byte[] buffer)
     {
-        // Copy to stream.
-        var stream = new MemoryStream(headerBytes.Concat(buffer).ToArray());
-        var vorbisStream = new VorbisWaveReader(stream, closeOnDispose: true);
-        vorbisStream.NextStreamIndex = MicrophoneSimulator.VorbisStreamSerialNo;
+        if (buffer.Any())
+        {
+            // Copy to stream.
+            using var stream = new MemoryStream(headerBytes.Concat(buffer).ToArray());
+            using var vorbisStream = new VorbisWaveReader(stream, closeOnDispose: true);
+            vorbisStream.NextStreamIndex = MicrophoneSimulator.VorbisStreamSerialNo;
 
-        this.buffer.Enqueue(vorbisStream);
+            try
+            {
+                var num = vorbisStream.Read(this.buffer, 0, this.buffer.Length);
+                bufferedWaveProvider.AddSamples(this.buffer, 0, num);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+        }
     }
 
     public async void PlayAsync()
     {
-        while (!stopped)
+        while (true)
         {
-            await this.buffer.PollAsync(vorbisStream =>
-            {
-                var completion = new TaskCompletionSource();
-                void OnPlaybackStopped(object? sender, StoppedEventArgs e)
-                {
-                    if (e.Exception != null)
-                    {
-                        Debug.WriteLine(e.Exception.Message);
-                    }
+            await Task.Delay(millisecondsDelay: 2_000);
 
-                    completion.TrySetResult();
+            var completion = new TaskCompletionSource();
+            void OnPlaybackStopped(object? sender, StoppedEventArgs e)
+            {
+                if (e.Exception != null)
+                {
+                    Debug.WriteLine(e.Exception.Message);
                 }
 
-                var speaker = new WasapiOut(AudioClientShareMode.Shared, latency: 0);
-                speaker.Init(vorbisStream);
-                speaker.PlaybackStopped += OnPlaybackStopped;
-                speaker.Play();
+                player.PlaybackStopped -= OnPlaybackStopped;
+                completion.TrySetResult();
+            }
 
-                return completion.Task;
-            });
+            // TODO: audio is stuttering.
+            //player.PlaybackStopped += OnPlaybackStopped;
+            player.Play();
+            await completion.Task;
         }
     }
 
-    public void Stop()
+    public void PlayStatic(string file)
     {
-        this.stopped = true;
+        var bytes = File.ReadAllBytes(file);
+        var streram = new MemoryStream(bytes);
+        var vorbisStream = new VorbisWaveReader(streram, closeOnDispose: true);
+        var player = new WaveOutEvent { DesiredLatency = 1000 };
+        player.Init(vorbisStream);
+        player.Play();
     }
 }
