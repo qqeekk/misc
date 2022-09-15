@@ -73,7 +73,7 @@ public class OggAudioPlayer
             }
 
             // TODO: audio is stuttering.
-            //player.PlaybackStopped += OnPlaybackStopped;
+            player.PlaybackStopped += OnPlaybackStopped;
             player.Play();
             await completion.Task;
         }
