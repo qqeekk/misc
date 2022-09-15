@@ -7,8 +7,8 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using LiteNetLib;
 using LiteNetLib.Utils;
-using LiteNetLibTest.Media;
-using LiteNetLibTest.Ogg;
+using LiteNetLibTest.Media.Input;
+using LiteNetLibTest.Media.Output;
 
 namespace LiteNetLibTest;
 
@@ -79,7 +79,7 @@ public partial class MainWindow : Window
 
         var gameRecorder = new GameRecorder(objects);
         var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
-        var queue = new OggDataRecorder(microphone, gameRecorder);
+        var queue = new OggDataInput(microphone, gameRecorder);
 
         // Start recording.
         microphone.Start();
@@ -96,8 +96,8 @@ public partial class MainWindow : Window
 
             lock (lo)
             {
-                gameRecorder.PollState();
-                var data = queue.Pop();
+                //gameRecorder.PollState();
+                var data = queue.Flush();
                 //stream.Write(data);
                 
                 writer.Reset();
@@ -140,8 +140,8 @@ public partial class MainWindow : Window
         var objects = this.FindControl<Canvas>("Scene").Children
             .Cast<Control>().Where(o => o != null).ToArray();
 
-        var microphone = new MicrophoneSimulator("unencoded.raw", sampleRate: 44100);
-        var player = new OggAudioPlayer(microphone);
+        var player = new OggAudioPlayer(MicrophoneSimulator.VorbisStreamSerialNo, sampleRate: 44100);
+        var outputs = new OggDataOutput(player);
 
         // Events.
         bool inProcess = false;
@@ -159,8 +159,7 @@ public partial class MainWindow : Window
         });
         listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
         {
-            var bytes = dataReader.GetBytesWithLength();
-            player.Enqueue(bytes);
+            outputs.ReceiveBytes(dataReader.GetBytesWithLength());
         };
         listener.ConnectionRequestEvent += request =>
         {

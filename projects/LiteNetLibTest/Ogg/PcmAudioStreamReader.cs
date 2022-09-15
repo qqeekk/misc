@@ -60,8 +60,10 @@ internal class PcmAudioStreamReader
         }
     }
 
-    public OggStream InitializeStream()
+    public static OggStream InitializeStream(int serialNo, int rate)
     {
+        var header = VorbisInfo.InitVariableBitRate(channels: 1, sampleRate: rate, baseQuality: 0.5f);
+
         // Voibis.
         var audioStream = new OggStream(serialNo);
         var audioHeader = HeaderPacketBuilder.BuildInfoPacket(header);
