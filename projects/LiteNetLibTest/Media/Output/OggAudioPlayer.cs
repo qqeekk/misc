@@ -42,7 +42,7 @@ public class OggAudioPlayer : IOggOutput
         bufferedWaveProvider = new BufferedWaveProvider(
             waveFormat: WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels: 1))
         {
-            BufferDuration = TimeSpan.FromSeconds(60),
+            BufferDuration = TimeSpan.FromSeconds(400),
         };
 
         player = new WasapiOut();
@@ -69,6 +69,9 @@ public class OggAudioPlayer : IOggOutput
                 var num = 0;
                 do
                 {
+                    // TODO: not very reliable. Audio is stuttering.
+                    // For some reason, output (.raw) file is 2 times larger than the source.
+                    // Does it count header data?
                     num = vorbisStream.Read(this.buffer, 0, 8820);
                     file.Write(this.buffer, 0, num);
 
@@ -106,7 +109,6 @@ public class OggAudioPlayer : IOggOutput
                 completion.TrySetResult();
             }
 
-            // TODO: audio is stuttering.
             player.PlaybackStopped += OnPlaybackStopped;
             player.Play();
             await completion.Task;
