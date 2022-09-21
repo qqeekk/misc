@@ -4,6 +4,9 @@ using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Ogg;
 
+/// <summary>
+/// PCM to Ogg Vorbis audio converter.
+/// </summary>
 internal class PcmAudioStreamReader
 {
     private const int WriteBufferSize = 1 << 14;
@@ -16,6 +19,13 @@ internal class PcmAudioStreamReader
     private readonly ProcessingState processingState;
     private volatile int packetNo = -1;
 
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    /// <param name="bytes">PCM (.raw) bytes.</param>
+    /// <param name="serialNo">Ogg stream serial number.</param>
+    /// <param name="rate">Sample rate (hertz).</param>
+    /// <param name="sample">Sample type.</param>
     public PcmAudioStreamReader(byte[] bytes, int serialNo, int rate, PcmSample sample)
     {
         this.serialNo = serialNo;
@@ -25,7 +35,11 @@ internal class PcmAudioStreamReader
         processingState = ProcessingState.Create(header);
     }
 
-    public OggStream NextInterval(int packets)
+    /// <summary>
+    /// Get Ogg packets for the given number of <paramref name="batches"/> of PCM samples.
+    /// </summary>
+    /// <param name="batches">Number of batches.</param>
+    public OggStream NextInterval(int batches)
     {
         // TODO: order is not guaranteed. see "lock convoy".
         // This can lead to wrong granule position in the final queue.
@@ -36,7 +50,7 @@ internal class PcmAudioStreamReader
             using var outputStream = new MemoryStream();
             var audioStream = new OggStream(serialNo);
             
-            for (var from = 0; from < packets; from++)
+            for (var from = 0; from < batches; from++)
             {
                 var offset = (packetNo + from) * WriteBufferSize;
                 if (offset == samples.Length)
@@ -60,6 +74,11 @@ internal class PcmAudioStreamReader
         }
     }
 
+    /// <summary>
+    /// Generate Vorbis stream header.
+    /// </summary>
+    /// <param name="serialNo">Serial number.</param>
+    /// <param name="rate">Sample rate (hertz).</param>
     public static OggStream InitializeStream(int serialNo, int rate)
     {
         var header = VorbisInfo.InitVariableBitRate(channels: 1, sampleRate: rate, baseQuality: 0.5f);
@@ -108,8 +127,18 @@ internal class PcmAudioStreamReader
     }
 }
 
+/// <summary>
+/// PCM sample type.
+/// </summary>
 public enum PcmSample : int
 {
+    /// <summary>
+    /// One byte.
+    /// </summary>
     EightBit = 1,
+
+    /// <summary>
+    /// Two bytes.
+    /// </summary>
     SixteenBit = 2
 }

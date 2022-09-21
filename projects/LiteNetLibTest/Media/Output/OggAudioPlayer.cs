@@ -9,19 +9,31 @@ using LiteNetLibTest.Media.Input;
 using LiteNetLibTest.Ogg;
 using NAudio.Vorbis;
 using NAudio.Wave;
-using nvorbis::NVorbis;
 
 namespace LiteNetLibTest.Media.Output;
 
+/// <summary>
+/// Ogg audio player.
+/// </summary>
 public class OggAudioPlayer : IOggOutput
 {
+    private static readonly FileStream file = new($"D:/{DateTime.Now:HHmmss}-pcm.raw", FileMode.Append);
+
     private readonly byte[] buffer = new byte[1 << 15];
     private readonly BufferedWaveProvider bufferedWaveProvider;
     private readonly IWavePlayer player;
 
+    /// <inheritdoc />
     public int StreamSerialNo { get; }
+
+    /// <inheritdoc />
     public byte[] StreamHeader { get; }
 
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    /// <param name="streamSerialNumber">Stream serial number.</param>
+    /// <param name="sampleRate">Sample rate (hertz).</param>
     public OggAudioPlayer(int streamSerialNumber, int sampleRate)
     {
         StreamSerialNo = streamSerialNumber;
@@ -38,10 +50,11 @@ public class OggAudioPlayer : IOggOutput
 
         var memoryStream = new MemoryStream();
         var oggHeaderStream = PcmAudioStreamReader.InitializeStream(streamSerialNumber, sampleRate);
-        OggDataInput.FlushPages(memoryStream, oggHeaderStream, force: true);
+        OggDataInput.FlushPages(memoryStream, oggHeaderStream);
         StreamHeader = memoryStream.ToArray();
     }
 
+    /// <inheritdoc />
     public bool Enqueue(byte[] buffer, Memory<byte>[] _)
     {
         if (buffer.Any())
@@ -57,6 +70,8 @@ public class OggAudioPlayer : IOggOutput
                 do
                 {
                     num = vorbisStream.Read(this.buffer, 0, 8820);
+                    file.Write(this.buffer, 0, num);
+
                     bufferedWaveProvider.AddSamples(this.buffer, 0, num);
                 }
                 while (num > 0);
@@ -70,6 +85,9 @@ public class OggAudioPlayer : IOggOutput
         return true;
     }
 
+    /// <summary>
+    /// Start worker thread to play buffered audio.
+    /// </summary>
     public async void PlayAsync()
     {
         while (true)
@@ -95,6 +113,10 @@ public class OggAudioPlayer : IOggOutput
         }
     }
 
+    /// <summary>
+    /// Play file contents in a separate thread.
+    /// </summary>
+    /// <param name="file">Physical path to Ogg-Vorbis (.ogg) file.</param>
     public void PlayStatic(string file)
     {
         var bytes = File.ReadAllBytes(file);

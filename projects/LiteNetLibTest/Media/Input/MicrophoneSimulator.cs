@@ -7,11 +7,19 @@ using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Media.Input;
 
+/// <summary>
+/// Microphone simulator.
+/// Reads PCM (.raw) file, encodes data to Ogg and sends it partially in equal intervals.
+/// </summary>
 public class MicrophoneSimulator : IOggInput, IAsyncDisposable
 {
-    public const int FrequencyMilliseconds = 200;
+    /// <summary>
+    /// Ogg Stream serial number.
+    /// </summary>
     public const int VorbisStreamSerialNo = 999;
 
+    private const int FrequencyMilliseconds = 200;
+    private readonly int sampleRate;
     private readonly string audioPath;
     private Timer? timer;
     private PcmAudioStreamReader? audioStreamReader;
@@ -23,53 +31,45 @@ public class MicrophoneSimulator : IOggInput, IAsyncDisposable
             if (audioStreamReader == null)
             {
                 var pcmBytes = File.ReadAllBytes(audioPath);
-                audioStreamReader = new PcmAudioStreamReader(pcmBytes, VorbisStreamSerialNo, SampleRate, sample: PcmSample.SixteenBit);
+                audioStreamReader = new PcmAudioStreamReader(pcmBytes, VorbisStreamSerialNo, sampleRate, sample: PcmSample.SixteenBit);
             }
             return audioStreamReader;
         }
     }
 
-    public int SampleRate { get; }
-
+    /// <inheritdoc />
     public event EventHandler<OggStream> Recorded = delegate { };
 
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    /// <param name="audioPath">Physical path to a PCM (.raw) file.</param>
+    /// <param name="sampleRate">Audio sample rate (hertz).</param>
     public MicrophoneSimulator(string audioPath, int sampleRate)
     {
-        SampleRate = sampleRate;
+        this.sampleRate = sampleRate;
         this.audioPath = audioPath;
     }
 
+    /// <summary>
+    /// Start emitting <see cref="Recorded"/> events in a background thread after equal time intervals.
+    /// </summary>
     public void Start()
     {
         timer = new Timer(callback: Routine, state: null, dueTime: FrequencyMilliseconds, period: FrequencyMilliseconds);
 
         void Routine(object? state)
         {
-            Recorded.Invoke(this, AudioStreamReader.NextInterval(packets: 1));
+            Recorded.Invoke(this, AudioStreamReader.NextInterval(batches: 1));
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (timer != null)
         {
             await timer.DisposeAsync();
         }
-    }
-
-    public OggPacket GetSkeletonFisbone()
-    {
-        // Skeleton Fisbone (audio)
-        var vorbisSkeletonFisbone = OggSkeletonBuilder.BuildFisbone(
-            serialNumber: VorbisStreamSerialNo,
-            headerPackets: 1,
-            granuleNumerator: (ulong)SampleRate,
-            granuleDenumerator: 1,
-            baseGranule: 0,
-            preroll: 3,
-            granShift: 0,
-            content: "Content-Type: audio/vorbis\r\nRole: audio/main\r\n");
-
-        return new OggPacket(vorbisSkeletonFisbone, false, 0, 1);
     }
 }

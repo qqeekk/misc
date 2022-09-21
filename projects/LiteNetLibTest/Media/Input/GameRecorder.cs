@@ -5,26 +5,36 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using Avalonia.Controls;
-using LiteNetLibTest.Ogg;
 using OggVorbisEncoder;
 
 namespace LiteNetLibTest.Media.Input;
 
+/// <summary>
+/// Game session recorder. Converts game state to Ogg packets.
+/// </summary>
 internal class GameRecorder : IOggInput
 {
     public const int MetadataStreamSerialNo = 33;
-    private const int SampleRate = 44100;
 
     private readonly Control[] objects;
     private int packetNumber = 0;
 
+    /// <inheritdoc />
     public event EventHandler<OggStream> Recorded = delegate { };
 
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    /// <param name="objects">Tracked objects.</param>
     public GameRecorder(Control[] objects)
     {
         this.objects = objects;
     }
 
+    /// <summary>
+    /// Poll current game state and send it converted to Ogg format.
+    /// This method triggers <see cref="Recorded"/> event.
+    /// </summary>
     public void PollState()
     {
         var data = objects
@@ -53,30 +63,5 @@ internal class GameRecorder : IOggInput
         dataStream.PacketIn(packet);
 
         Recorded.Invoke(this, dataStream);
-    }
-
-    public OggStream GetLogicalStreamHeader()
-    {
-        var data = VorbisInfo.InitVariableBitRate(MetadataStreamSerialNo, SampleRate, baseQuality: 1f);
-        var dataStream = new OggStream(MetadataStreamSerialNo);
-        var dataHeader = HeaderPacketBuilder.BuildInfoPacket(data);
-        dataStream.PacketIn(dataHeader);
-
-        return dataStream;
-    }
-
-    public OggPacket GetSkeletonFisbone()
-    {
-        // Skeleton Fisbone(metadata)
-        var metadataSkeletonFisbone = OggSkeletonBuilder.BuildFisbone(
-            serialNumber: MetadataStreamSerialNo,
-            headerPackets: 1,
-            granuleNumerator: SampleRate,
-            granuleDenumerator: 1,
-            baseGranule: 0,
-            preroll: 3,
-            granShift: 0,
-            content: "Content-Type: text/vorbis\r\nRole: text/main\r\n");
-        return new OggPacket(metadataSkeletonFisbone, false, 0, 2);
     }
 }
