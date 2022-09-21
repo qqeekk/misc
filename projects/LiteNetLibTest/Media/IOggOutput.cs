@@ -1,4 +1,4 @@
-﻿using OggVorbisEncoder;
+﻿using System;
 
 namespace LiteNetLibTest.Media;
 
@@ -8,5 +8,5 @@ public interface IOggOutput
 
     public byte[] StreamHeader { get; }
 
-    public void Enqueue(byte[] stream);
+    public bool Enqueue(byte[] stream, Memory<byte>[] packets);
 }

@@ -1,10 +1,12 @@
-﻿using System;
+﻿extern alias nvorbis;
+
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using LiteNetLibTest.Media.Input;
-using NVorbis;
-using NVorbis.Ogg;
+using nvorbis::NVorbis;
+using nvorbis::NVorbis.Ogg;
 
 namespace LiteNetLibTest.Media.Output;
 
@@ -28,29 +30,25 @@ internal class OggDataOutput
 
     public void ReceiveBytes(byte[] bytes)
     {
-        var memoryStream = new MemoryStream(headerBytes.Concat(bytes).ToArray());
+        var handledStreams = new List<int>();
 
-        // TODO: We need PageReader class here.
-        // Fork NVorbis, add as friend assembly, introduce assembly alias.
-        using var stream = new ContainerReader(memoryStream, closeOnDispose: true)
+        var memoryStream = new MemoryStream(bytes);
+        using var pageReader = new PageReader(memoryStream, closeOnDispose: true, _ => true);
+
+        pageReader.Lock();
+        while (pageReader.ReadNextPage())
         {
-            NewStreamCallback = (packetProvider) =>
+            if (handledStreams.Contains(pageReader.StreamSerial))
             {
-                var decoder = new StreamDecoder(packetProvider);
-                var length = decoder.Read(buffer, 0, buffer.Length);
-
-                if (outputs.TryGetValue(packetProvider.StreamSerial, out var device))
-                {
-                    var bytes = new byte[length * 4];
-                    Buffer.BlockCopy(buffer, 0, bytes, 0, length * 4);
-
-                    device.Enqueue(bytes);
-                    
-                }
-                return true;
+                continue;
             }
-        };
 
-        while (stream.FindNextStream());
+            if (outputs.TryGetValue(pageReader.StreamSerial, out var output))
+            {
+                var isHandled = output.Enqueue(bytes, pageReader.GetPackets());
+                if (isHandled) handledStreams.Add(pageReader.StreamSerial);
+            }
+        }
+        pageReader.Release();
     }
 }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿extern alias nvorbis;
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -7,12 +9,13 @@ using LiteNetLibTest.Media.Input;
 using LiteNetLibTest.Ogg;
 using NAudio.Vorbis;
 using NAudio.Wave;
+using nvorbis::NVorbis;
 
 namespace LiteNetLibTest.Media.Output;
 
 public class OggAudioPlayer : IOggOutput
 {
-    private readonly byte[] buffer = new byte[1 << 16];
+    private readonly byte[] buffer = new byte[1 << 15];
     private readonly BufferedWaveProvider bufferedWaveProvider;
     private readonly IWavePlayer player;
 
@@ -39,7 +42,7 @@ public class OggAudioPlayer : IOggOutput
         StreamHeader = memoryStream.ToArray();
     }
 
-    public void Enqueue(byte[] buffer)
+    public bool Enqueue(byte[] buffer, Memory<byte>[] _)
     {
         if (buffer.Any())
         {
@@ -50,14 +53,21 @@ public class OggAudioPlayer : IOggOutput
 
             try
             {
-                var num = vorbisStream.Read(this.buffer, 0, this.buffer.Length);
-                bufferedWaveProvider.AddSamples(this.buffer, 0, num);
+                var num = 0;
+                do
+                {
+                    num = vorbisStream.Read(this.buffer, 0, 8820);
+                    bufferedWaveProvider.AddSamples(this.buffer, 0, num);
+                }
+                while (num > 0);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
             }
         }
+
+        return true;
     }
 
     public async void PlayAsync()

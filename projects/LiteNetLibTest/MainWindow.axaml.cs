@@ -19,7 +19,6 @@ public partial class MainWindow : Window
     private readonly static object lo = new();
 
     private readonly EventBasedNetListener listener = new();
-    private readonly NetPacketProcessor netPacketProcessor = new();
     private NetManager? server;
     private NetManager? client;
     private DispatcherTimer? timer;
@@ -27,7 +26,7 @@ public partial class MainWindow : Window
     private Control? controlUnderMoving;
     private Point controlStartMousePosition;
     private MemoryStream stream;
-    private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(150);
+    private readonly TimeSpan timerInterval = TimeSpan.FromMilliseconds(60);
 
     public MainWindow()
     {
@@ -96,9 +95,8 @@ public partial class MainWindow : Window
 
             lock (lo)
             {
-                //gameRecorder.PollState();
+                gameRecorder.PollState();
                 var data = queue.Flush();
-                //stream.Write(data);
                 
                 writer.Reset();
                 writer.PutBytesWithLength(data);
@@ -141,22 +139,12 @@ public partial class MainWindow : Window
             .Cast<Control>().Where(o => o != null).ToArray();
 
         var player = new OggAudioPlayer(MicrophoneSimulator.VorbisStreamSerialNo, sampleRate: 44100);
-        var outputs = new OggDataOutput(player);
+        var gameWriter = new GameWriter(GameRecorder.MetadataStreamSerialNo, objects);
+        var outputs = new OggDataOutput(gameWriter, player);
 
         // Events.
         bool inProcess = false;
         ThreadPool.QueueUserWorkItem(_ => player.PlayAsync());
-        //ThreadPool.QueueUserWorkItem(_ => player.PlayStatic("D:\\target.ogg"));
-        netPacketProcessor.SubscribeReusable<GameObject, NetPeer>((go, netPeer) =>
-        {
-            var obj = objects.FirstOrDefault(o => o.Name == go.Id);
-            if (obj == null)
-            {
-                return;
-            }
-            obj.SetValue(Canvas.LeftProperty, go.Left);
-            obj.SetValue(Canvas.TopProperty, go.Top);
-        });
         listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
         {
             outputs.ReceiveBytes(dataReader.GetBytesWithLength());

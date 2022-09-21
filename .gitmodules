@@ -1,0 +1,3 @@
+[submodule "projects/NVorbisFork"]
+	path = projects/NVorbisFork
+	url = git@github.com:qqeekk/NVorbis.git
