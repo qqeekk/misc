@@ -60,7 +60,7 @@ public class MicrophoneSimulator : IOggInput, IAsyncDisposable
 
         void Routine(object? state)
         {
-            Recorded.Invoke(this, AudioStreamReader.NextInterval(batches: 1));
+            Recorded.Invoke(this, AudioStreamReader.NextInterval());
         }
     }
 

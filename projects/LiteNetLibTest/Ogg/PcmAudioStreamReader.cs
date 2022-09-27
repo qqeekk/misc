@@ -7,17 +7,20 @@ namespace LiteNetLibTest.Ogg;
 /// <summary>
 /// PCM to Ogg Vorbis audio converter.
 /// </summary>
+/// <remarks>Based on <seealso cref="https://github.com/SteveLillis/.NET-Ogg-Vorbis-Encoder/blob/master/OggVorbisEncoder.StreamExample/Encoder.cs"/>
+/// </remarks>
 internal class PcmAudioStreamReader
 {
     private const int WriteBufferSize = 1 << 14;
-    
+
+    private readonly MemoryStream stream;
+    private readonly byte[] buffer;
+
     private readonly object _obj = new();
-    private readonly float[] samples;
     private readonly int serialNo;
     private readonly PcmSample sample;
     private readonly VorbisInfo header;
     private readonly ProcessingState processingState;
-    private volatile int packetNo = -1;
 
     /// <summary>
     /// Constructor.
@@ -30,7 +33,9 @@ internal class PcmAudioStreamReader
     {
         this.serialNo = serialNo;
         this.sample = sample;
-        samples = GetFloats(bytes);
+        this.stream = new MemoryStream(bytes);
+        this.buffer = new byte[WriteBufferSize];
+
         header = VorbisInfo.InitVariableBitRate(channels: 1, sampleRate: rate, baseQuality: 0.5f);
         processingState = ProcessingState.Create(header);
     }
@@ -39,36 +44,24 @@ internal class PcmAudioStreamReader
     /// Get Ogg packets for the given number of <paramref name="batches"/> of PCM samples.
     /// </summary>
     /// <param name="batches">Number of batches.</param>
-    public OggStream NextInterval(int batches)
+    public OggStream NextInterval()
     {
         // TODO: order is not guaranteed. see "lock convoy".
         // This can lead to wrong granule position in the final queue.
         lock (_obj)
         {
-            var packetNo = ++this.packetNo;
+            var chunkSize = stream.Read(this.buffer, 0, WriteBufferSize);
+            var samples = GetFloats(this.buffer, chunkSize);
 
-            using var outputStream = new MemoryStream();
+            processingState.WriteData(
+                data: new[] { samples },
+                length: samples.Length,
+                read_offset: 0);
+
             var audioStream = new OggStream(serialNo);
-            
-            for (var from = 0; from < batches; from++)
+            while (!audioStream.Finished && processingState.PacketOut(out OggPacket packet))
             {
-                var offset = (packetNo + from) * WriteBufferSize;
-                if (offset == samples.Length)
-                {
-                    processingState.WriteEndOfStream();
-                }
-                else
-                {
-                    processingState.WriteData(
-                        data: new[] { samples },
-                        length: WriteBufferSize,
-                        read_offset: offset);
-                }
-
-                while (!audioStream.Finished && processingState.PacketOut(out OggPacket packet))
-                {
-                    audioStream.PacketIn(packet);
-                }
+                audioStream.PacketIn(packet);
             }
             return audioStream;
         }
@@ -101,21 +94,20 @@ internal class PcmAudioStreamReader
         return audioStream;
     }
 
-    private float[] GetFloats(byte[] bytes)
+    private float[] GetFloats(byte[] chunk, int chunkSize)
     {
-        var sampleNumbers = bytes.Length / (int)sample;
+        var pcmSamplesCount = chunkSize / (int)sample;
+        var pcmDuration = pcmSamplesCount / (float)header.SampleRate;
+        var oggSamplesCount = (int)(pcmDuration * header.SampleRate);
 
-        // Ensure that sample buffer is aligned to write chunk size.
-        var allignedSampleNumbers = (sampleNumbers / WriteBufferSize) * WriteBufferSize;
-        var samples = new float[allignedSampleNumbers];
-
-        for (int sampleNumber = 0; sampleNumber < allignedSampleNumbers; sampleNumber++)
+        var samples = new float[oggSamplesCount];
+        for (int sampleNumber = 0; sampleNumber < oggSamplesCount; sampleNumber++)
         {
             var sampleIndex = sampleNumber * (int)sample;
             samples[sampleNumber] = sample switch
             {
-                PcmSample.EightBit => ByteToSample(bytes[sampleIndex]),
-                PcmSample.SixteenBit => ShortToSample((short)(bytes[sampleIndex + 1] << 8 | bytes[sampleIndex])),
+                PcmSample.EightBit => ByteToSample(chunk[sampleIndex]),
+                PcmSample.SixteenBit => ShortToSample((short)(chunk[sampleIndex + 1] << 8 | chunk[sampleIndex])),
                 _ => throw new NotImplementedException(),
             };
         }

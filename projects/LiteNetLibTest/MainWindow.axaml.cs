@@ -144,7 +144,6 @@ public partial class MainWindow : Window
 
         // Events.
         bool inProcess = false;
-        ThreadPool.QueueUserWorkItem(_ => player.PlayAsync());
         listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod) =>
         {
             outputs.ReceiveBytes(dataReader.GetBytesWithLength());
@@ -170,8 +169,12 @@ public partial class MainWindow : Window
             client.PollEvents();
             inProcess = false;
         });
+
+        // Start background jobs.
+        //player.PlayPCMStatic("../../131815-pcm.raw");
+        player.PlayAsync();
         timer.Start();
-        
+
         Title = "Client";
     }
 }

@@ -11,5 +11,5 @@ public interface IOggInput
     /// <summary>
     /// New data recorded event.
     /// </summary>
-    public event EventHandler<OggStream> Recorded;
+    event EventHandler<OggStream> Recorded;
 }
