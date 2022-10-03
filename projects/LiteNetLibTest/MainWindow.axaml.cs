@@ -173,6 +173,7 @@ public partial class MainWindow : Window
         // Start background jobs.
         //player.PlayPCMStatic("../../131815-pcm.raw");
         player.PlayAsync();
+        //player.PlayPCMStatic("unencoded.raw");
         timer.Start();
 
         Title = "Client";

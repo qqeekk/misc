@@ -43,10 +43,10 @@ public class OggAudioPlayer : IOggOutput
         StreamSerialNo = streamSerialNumber;
 
         // Initialize player.
-        bufferedWaveProvider = new BufferedWaveProvider(
-            waveFormat: WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels: 1))
+        var waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels: 1);
+        bufferedWaveProvider = new BufferedWaveProvider(waveFormat)
         {
-            BufferDuration = TimeSpan.FromSeconds(400),
+            BufferDuration = TimeSpan.FromSeconds(4000),
         };
 
         player = new WasapiOut();
@@ -137,15 +137,30 @@ public class OggAudioPlayer : IOggOutput
     /// <summary>
     /// Play file contents in a separate thread.
     /// </summary>
-    /// <param name="file">Physical path to Ogg-Vorbis (.ogg) file.</param>
+    /// <param name="file">Physical path to PCM (.raw) file.</param>
     public void PlayPCMStatic(string file)
     {
+        var pcmWaveFormat = new WaveFormat(44100, 16, 1);
+
+        using var byteStream = new MemoryStream(File.ReadAllBytes(file));
+        var stream = new RawSourceWaveStream(byteStream, pcmWaveFormat);
+
+        var player = new WasapiOut();
+        player.Init(stream);
+        player.Play();
+    }
+
+    /// <summary>
+    /// Play file contents in a separate thread.
+    /// </summary>
+    /// <param name="file">Physical path to IEEE float file.</param>
+    public void PlayIeeeFloatStatic(string file)
+    {
         var bytes = File.ReadAllBytes(file);
-
-        var player = new WaveOutEvent { DesiredLatency = 1000 };
-        player.Init(bufferedWaveProvider);
-
         bufferedWaveProvider.AddSamples(bytes, 0, bytes.Length);
+
+        var player = new WasapiOut();
+        player.Init(bufferedWaveProvider);
         player.Play();
     }
 }
